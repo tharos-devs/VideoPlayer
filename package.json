@@ -1,0 +1,17 @@
+{
+  "name": "videoplayer",
+  "version": "1.0.0",
+  "description": "Ultra-low latency video player with WebRTC streaming",
+  "main": "src-tauri/src/main.rs",
+  "scripts": {
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build && ./copy-assets.sh",
+    "tauri:build:debug": "tauri build --debug"
+  },
+  "author": "SFI",
+  "license": "MIT",
+  "dependencies": {
+    "@tauri-apps/cli": "^1.5.0"
+  }
+}

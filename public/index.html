@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Video Player - WebRTC</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+        #videoCanvas {
+            width: 100vw;
+            height: 100vh;
+            object-fit: contain;
+            display: block;
+            background: #000;
+            cursor: pointer;
+        }
+        
+        #videoCanvas:hover {
+            cursor: pointer;
+        }
+        #status {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            color: white;
+            font-family: monospace;
+            font-size: 10px;
+        }
+        #playStatus {
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            color: white;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        #timer {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            color: white;
+            font-family: monospace;
+            font-size: 10px;
+        }
+        
+        /* Debug panel button hover effects */
+        #debugPanel button:hover {
+            background: #444 !important;
+            border-color: #666 !important;
+            transform: scale(1.05);
+        }
+        
+        #debugPanel button:active {
+            background: #222 !important;
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body>
+    <div id="status">No video loaded</div>
+    <div id="timer">00:00:00 / 00:00:00</div>
+    <div id="playStatus">STOP</div>
+    
+    <!-- Debug Panel -->
+    <div id="debugPanel" style="position: absolute; top: 5px; left: 5px; right: 5px; background: rgba(0,0,0,0.9); padding: 8px; border-radius: 5px; font-size: 11px; color: white; max-height: 320px; overflow: auto; box-sizing: border-box; display: none; border: 1px solid #444;">
+        <!-- Test Commands -->
+        <div style="margin-bottom: 8px;">
+            <div style="margin-bottom: 5px; font-weight: bold;">Test Commands:</div>
+            <button onclick="testHttpCommand('seek/0')" style="width: 14%; font-size: 9px; margin: 1px; padding: 4px; background: #333; color: white; border: 1px solid #555; border-radius: 3px; cursor: pointer;">Rewind</button>
+            <button onclick="testHttpCommand('play')" style="width: 14%; font-size: 9px; margin: 1px; padding: 4px; background: #333; color: white; border: 1px solid #555; border-radius: 3px; cursor: pointer;">Play</button>
+            <button onclick="testHttpCommand('pause')" style="width: 14%; font-size: 9px; margin: 1px; padding: 4px; background: #333; color: white; border: 1px solid #555; border-radius: 3px; cursor: pointer;">Pause</button>
+            <button onclick="seekToTime()" style="width: 14%; font-size: 9px; margin: 1px; padding: 4px; background: #333; color: white; border: 1px solid #555; border-radius: 3px; cursor: pointer;">Seek</button>
+            <input type="text" id="seekTime" placeholder="mm:ss or ss" style="width: 38%; font-size: 9px; padding: 4px; margin: 1px; background: #222; color: white; border: 1px solid #555; border-radius: 3px;">
+        </div>
+        
+        <!-- Latency Display -->
+        <div style="border-top: 1px solid #555; padding-top: 8px; margin-bottom: 8px;">
+            <div style="margin-bottom: 5px; font-weight: bold;">Network Latency:</div>
+            <div id="latency" style="color: #0f0; font-family: monospace; font-size: 10px;">Latency: --ms</div>
+        </div>
+        
+        <!-- Console Output -->
+        <div style="border-top: 1px solid #555; padding-top: 8px;">
+            <div style="margin-bottom: 5px; font-weight: bold;">Console:</div>
+            <div id="consoleOutput" style="background: #222; padding: 5px; height: 80px; overflow-y: auto; font-family: monospace; font-size: 10px; color: #0f0; border: 1px solid #444; border-radius: 3px;"></div>
+            <button id="clearConsole" style="width: 48%; font-size: 9px; margin-top: 5px; padding: 4px; background: #333; color: white; border: 1px solid #555; border-radius: 3px; cursor: pointer;">Clear</button>
+            <button id="hideDebug" style="width: 48%; font-size: 9px; margin-top: 5px; padding: 4px; background: #333; color: white; border: 1px solid #555; border-radius: 3px; cursor: pointer;">Close</button>
+        </div>
+    </div>
+    
+    <canvas id="videoCanvas"></canvas>
+
+    <script>
+        // WebRTC Ultra-Low Latency Video Player
+        const canvas = document.getElementById('videoCanvas');
+        const ctx = canvas.getContext('2d');
+        const status = document.getElementById('status');
+        const playStatus = document.getElementById('playStatus');
+        const timer = document.getElementById('timer');
+        const latencyDiv = document.getElementById('latency');
+        
+        let ws = null;
+        let isPlaying = false;
+        let currentPosition = 0;
+        let videoDuration = 0; // Durée totale de la vidéo
+        let lastFrameTime = 0;
+        let frameCount = 0;
+        let latencySum = 0;
+        let videoAspectRatio = 16/9; // Ratio par défaut
+        
+        // Function to resize canvas responsively
+        function resizeCanvas() {
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+            const windowAspectRatio = windowWidth / windowHeight;
+            
+            if (windowAspectRatio > videoAspectRatio) {
+                // Window is wider than video ratio - fit by height
+                canvas.width = Math.floor(windowHeight * videoAspectRatio);
+                canvas.height = windowHeight;
+            } else {
+                // Window is taller than video ratio - fit by width  
+                canvas.width = windowWidth;
+                canvas.height = Math.floor(windowWidth / videoAspectRatio);
+            }
+        }
+        
+        // Initial canvas setup
+        resizeCanvas();
+        
+        // Resize canvas on window resize
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Fullscreen toggle on double-click
+        let isFullscreen = false;
+        let originalWindowSize = { width: 600, height: 450 };
+        
+        async function toggleFullscreen() {
+            try {
+                logToConsole(`Attempting to toggle fullscreen (current: ${isFullscreen})`);
+                
+                if (window.__TAURI__ && window.__TAURI__.window) {
+                    const appWindow = window.__TAURI__.window.getCurrent();
+                    
+                    if (!isFullscreen) {
+                        // Enter fullscreen
+                        await appWindow.setFullscreen(true);
+                        isFullscreen = true;
+                        logToConsole('✅ Entered fullscreen mode', 'success');
+                    } else {
+                        // Exit fullscreen
+                        await appWindow.setFullscreen(false);
+                        isFullscreen = false;
+                        logToConsole('✅ Exited fullscreen mode', 'success');
+                    }
+                    
+                    // Resize canvas after state change
+                    setTimeout(resizeCanvas, 100);
+                } else {
+                    logToConsole('❌ Tauri window API not available', 'error');
+                    // Fallback to web fullscreen API
+                    if (!isFullscreen) {
+                        if (document.documentElement.requestFullscreen) {
+                            await document.documentElement.requestFullscreen();
+                        } else if (document.documentElement.webkitRequestFullscreen) {
+                            await document.documentElement.webkitRequestFullscreen();
+                        }
+                        isFullscreen = true;
+                        logToConsole('✅ Entered web fullscreen mode', 'success');
+                    } else {
+                        if (document.exitFullscreen) {
+                            await document.exitFullscreen();
+                        } else if (document.webkitExitFullscreen) {
+                            await document.webkitExitFullscreen();
+                        }
+                        isFullscreen = false;
+                        logToConsole('✅ Exited web fullscreen mode', 'success');
+                    }
+                    setTimeout(resizeCanvas, 100);
+                }
+            } catch (error) {
+                logToConsole(`❌ Fullscreen error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Double-click detection with manual timing for better reliability
+        let lastClickTime = 0;
+        let clickCount = 0;
+        
+        function handleDoubleClick(e, source) {
+            const currentTime = Date.now();
+            const timeDiff = currentTime - lastClickTime;
+            
+            logToConsole(`Click detected on ${source} (time diff: ${timeDiff}ms)`);
+            
+            if (timeDiff < 500) { // Within 500ms = double click
+                clickCount++;
+                if (clickCount === 2) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    logToConsole(`✅ Double-click confirmed on ${source} - triggering fullscreen`);
+                    toggleFullscreen();
+                    clickCount = 0;
+                }
+            } else {
+                clickCount = 1;
+            }
+            
+            lastClickTime = currentTime;
+        }
+        
+        // Double-click event listener on canvas
+        canvas.addEventListener('dblclick', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            logToConsole('Native double-click detected on canvas');
+            toggleFullscreen();
+        });
+        
+        // Manual click detection as backup
+        canvas.addEventListener('click', (e) => {
+            handleDoubleClick(e, 'canvas');
+        });
+        
+        // Also listen on document for easier double-click detection
+        document.addEventListener('dblclick', (e) => {
+            // Only trigger if not clicking on debug panel or input elements
+            if (!e.target.closest('#debugPanel') && !e.target.matches('input, button')) {
+                e.preventDefault();
+                e.stopPropagation();
+                logToConsole('Native double-click detected on document');
+                toggleFullscreen();
+            }
+        });
+        
+        // Manual click detection on document as backup
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#debugPanel') && !e.target.matches('input, button')) {
+                handleDoubleClick(e, 'document');
+            }
+        });
+        
+        let pollingInterval = null;
+        let isConnected = false;
+        
+        // Connect to WebRTC server with fallback to HTTP polling
+        function connectWebSocket() {
+            // Try WebSocket first (for dev mode)
+            try {
+                ws = new WebSocket('ws://localhost:5173');
+                
+                ws.onopen = () => {
+                    logToConsole('WebSocket connection established');
+                    status.textContent = "Ready: no video";
+                    isConnected = true;
+                    updatePlayStatus();
+                    // Stop polling if it was running
+                    if (pollingInterval) {
+                        clearInterval(pollingInterval);
+                        pollingInterval = null;
+                    }
+                };
+                
+                ws.onmessage = (event) => {
+                    const message = JSON.parse(event.data);
+                    handleWebRTCMessage(message);
+                };
+                
+                ws.onerror = (error) => {
+                    logToConsole('WebSocket failed, switching to HTTP polling', 'error');
+                    startHttpPolling();
+                };
+                
+                ws.onclose = () => {
+                    logToConsole('WebSocket connection closed');
+                    isConnected = false;
+                    startHttpPolling();
+                };
+                
+                // Timeout for WebSocket connection
+                setTimeout(() => {
+                    if (!isConnected) {
+                        logToConsole('WebSocket timeout, switching to HTTP polling');
+                        startHttpPolling();
+                    }
+                }, 2000);
+                
+            } catch (error) {
+                logToConsole('WebSocket not supported, using HTTP polling');
+                startHttpPolling();
+            }
+        }
+        
+        function startHttpPolling() {
+            if (pollingInterval) return; // Already polling
+            
+            logToConsole('Starting HTTP polling mode');
+            status.textContent = "Ready: no video";
+            isConnected = true;
+            updatePlayStatus();
+            
+            // Poll server every 100ms for state
+            pollingInterval = setInterval(async () => {
+                try {
+                    const response = await fetch('http://localhost:5173/state');
+                    if (response.ok) {
+                        const state = await response.json();
+                        handleWebRTCMessage({
+                            type: 'state',
+                            playing: state.playing,
+                            position: state.position,
+                            video: state.video
+                        });
+                    }
+                } catch (error) {
+                    // Server not available
+                    if (isConnected) {
+                        logToConsole('Server disconnected');
+                        status.textContent = "Disconnected";
+                        isConnected = false;
+                        updatePlayStatus();
+                    }
+                }
+            }, 100);
+        }
+        
+        function handleWebRTCMessage(message) {
+            const now = Date.now();
+            
+            switch (message.type) {
+                case 'state':
+                    logToConsole(`WebRTC state: playing=${message.playing}, pos=${message.position}s`);
+                    isPlaying = message.playing;
+                    currentPosition = message.position;
+                    updatePlayStatus();
+                    if (message.video) {
+                        status.textContent = "Video loaded";
+                    }
+                    break;
+                    
+                case 'video_set':
+                    logToConsole(`Video set: ${message.path}`);
+                    status.textContent = "Video loaded";
+                    videoDuration = message.duration || 0;
+                    if (videoDuration > 0) {
+                        logToConsole(`Video duration: ${videoDuration.toFixed(2)}s`);
+                    }
+                    break;
+                    
+                case 'play':
+                    logToConsole('WebRTC: Play command');
+                    isPlaying = true;
+                    currentPosition = message.position;
+                    updatePlayStatus();
+                    break;
+                    
+                case 'pause':
+                    logToConsole('WebRTC: Pause command');
+                    isPlaying = false;
+                    currentPosition = message.position;
+                    updatePlayStatus();
+                    break;
+                    
+                    
+                case 'seek':
+                    // ULTRA-LOW LATENCY: Calculate seek latency
+                    const seekLatency = now - (message.timestamp || now);
+                    logToConsole(`ULTRA-FAST SEEK to ${message.position}s - Latency: ${seekLatency}ms`);
+                    
+                    currentPosition = message.position;
+                    isPlaying = message.playing;
+                    updatePlayStatus();
+                    
+                    // Update latency display
+                    latencyDiv.textContent = `Seek Latency: ${seekLatency}ms`;
+                    break;
+                    
+                case 'frame':
+                    // Render video frame on canvas
+                    renderFrame(message.data, message.timestamp);
+                    break;
+                    
+                case 'clear':
+                    logToConsole('Video cleared');
+                    status.textContent = "No video loaded";
+                    isPlaying = false;
+                    currentPosition = 0;
+                    updatePlayStatus();
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    break;
+            }
+        }
+        
+        function renderFrame(base64Data, timestamp) {
+            const img = new Image();
+            img.onload = () => {
+                // Update aspect ratio based on actual image dimensions
+                const newAspectRatio = img.width / img.height;
+                if (Math.abs(newAspectRatio - videoAspectRatio) > 0.01) {
+                    videoAspectRatio = newAspectRatio;
+                    resizeCanvas();
+                }
+                
+                // Calculate frame latency
+                const now = Date.now();
+                const frameLatency = now - timestamp;
+                
+                // Draw frame on canvas
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                
+                // Update latency statistics
+                frameCount++;
+                latencySum += frameLatency;
+                
+                if (frameCount % 30 === 0) { // Update every 30 frames
+                    const avgLatency = Math.round(latencySum / 30);
+                    latencyDiv.textContent = `Frame Latency: ${avgLatency}ms (avg)`;
+                    latencySum = 0;
+                }
+                
+                // Update position estimate (rough)
+                if (isPlaying) {
+                    const timeDelta = (now - lastFrameTime) / 1000;
+                    if (timeDelta > 0 && timeDelta < 1) { // Reasonable delta
+                        currentPosition += timeDelta;
+                    }
+                    lastFrameTime = now;
+                    updateTimer();
+                }
+            };
+            img.src = 'data:image/jpeg;base64,' + base64Data;
+        }
+        
+        function updatePlayStatus() {
+            if (!isConnected) {
+                playStatus.textContent = 'DISCONNECTED';
+            } else if (isPlaying) {
+                playStatus.textContent = 'PLAY';
+            } else {
+                playStatus.textContent = currentPosition > 0 ? 'PAUSE' : 'STOP';
+            }
+        }
+        
+        function formatTime(seconds) {
+            if (isNaN(seconds)) return '00:00:00';
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = Math.floor(seconds % 60);
+            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+        
+        function updateTimer() {
+            const current = formatTime(currentPosition);
+            const total = videoDuration > 0 ? formatTime(videoDuration) : '--:--:--';
+            timer.textContent = `${current} / ${total}`;
+        }
+        
+        
+        // Test HTTP endpoints function
+        async function testHttpCommand(endpoint) {
+            try {
+                logToConsole(`ENDPOINT: /${endpoint}`);
+                
+                // Create timeout manually for better browser compatibility
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                
+                const response = await fetch(`http://localhost:5173/${endpoint}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    logToConsole(`HTTP endpoint success: ${JSON.stringify(result)}`, 'success');
+                } else {
+                    logToConsole(`HTTP endpoint failed: ${response.status}`, 'error');
+                }
+            } catch (e) {
+                if (e.name === 'AbortError') {
+                    logToConsole(`Request timeout - server may be slow`, 'error');
+                } else if (e.name === 'TypeError' && e.message.includes('Load failed')) {
+                    logToConsole(`Server not running on localhost:5173`, 'error');
+                } else {
+                    logToConsole(`HTTP endpoint error: ${e.toString()}`, 'error');
+                }
+            }
+        }
+        
+        // Seek function
+        function seekToTime() {
+            const timeStr = document.getElementById('seekTime').value.trim();
+            if (!timeStr) {
+                logToConsole('No time specified', 'error');
+                return;
+            }
+            
+            const parts = timeStr.split(':');
+            let seconds = 0;
+            
+            if (parts.length === 1) {
+                seconds = parseFloat(parts[0]);
+            } else if (parts.length === 2) {
+                const minutes = parseInt(parts[0]);
+                const secs = parseFloat(parts[1]);
+                seconds = minutes * 60 + secs;
+            } else {
+                logToConsole('Invalid time format. Use mm:ss or ss', 'error');
+                return;
+            }
+            
+            testHttpCommand(`seek/${seconds}`);
+        }
+        
+        // Console logging function
+        function logToConsole(message, type = 'info') {
+            const console_output = document.getElementById('consoleOutput');
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'error' ? '#f44' : type === 'success' ? '#4f4' : '#0f0';
+            const cleanMessage = message.replace(/[🎹🎬📥✅❌⚠️🧪🔄📊🖱️🔧🧹⚡]/g, '');
+            console_output.innerHTML += `<div style="color: ${color};">[${timestamp}] ${cleanMessage}</div>`;
+            console_output.scrollTop = console_output.scrollHeight;
+            console.log(`[${timestamp}] ${cleanMessage}`);
+        }
+        
+        // Hide Debug Panel
+        document.getElementById('hideDebug').addEventListener('click', () => {
+            document.getElementById('debugPanel').style.display = 'none';
+        });
+
+        // Show debug panel on right-click
+        document.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            document.getElementById('debugPanel').style.display = 'block';
+        });
+        
+        // Clear console
+        document.getElementById('clearConsole').addEventListener('click', () => {
+            document.getElementById('consoleOutput').innerHTML = '';
+        });
+
+        // Enter key to seek
+        document.getElementById('seekTime').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                seekToTime();
+            }
+        });
+        
+        
+        // Inject Tauri API for development mode
+        if (!window.__TAURI__) {
+            window.__TAURI__ = {};
+            window.__TAURI__.invoke = window.__TAURI_INVOKE__;
+        }
+        
+        // Wait for Tauri API to be ready
+        let tauriReady = false;
+        
+        function checkTauriAPI() {
+            logToConsole('Checking Tauri API...');
+            const tauriInvoke = window.__TAURI_INVOKE__ || 
+                               (window.__TAURI__ && window.__TAURI__.invoke) || 
+                               (window.__TAURI_IPC__ && window.__TAURI_IPC__.invoke);
+            
+            if (tauriInvoke) {
+                if (!window.__TAURI__) window.__TAURI__ = {};
+                window.__TAURI__.invoke = tauriInvoke;
+                
+                tauriReady = true;
+                logToConsole('Tauri API loaded successfully');
+                loadServerInfo();
+                return true;
+            } else {
+                logToConsole('Tauri API not ready yet');
+                return false;
+            }
+        }
+        
+        // Check immediately and setup interval
+        if (!checkTauriAPI()) {
+            logToConsole('Waiting for Tauri API...');
+            const checkInterval = setInterval(() => {
+                if (checkTauriAPI()) {
+                    clearInterval(checkInterval);
+                }
+            }, 100);
+        }
+        
+        // Load server info for console display
+        async function loadServerInfo() {
+            logToConsole('Server running on http://localhost:5173');
+            logToConsole('WebRTC connection ready', 'success');
+        }
+        
+        
+        // Show helpful messages
+        logToConsole('💡 TIP: Use the debug panel buttons (right-click) to control video');
+        logToConsole('💡 TIP: Double-click anywhere to toggle fullscreen mode');
+        
+        // Initialize
+        status.textContent = "Connecting...";
+        playStatus.textContent = "CONNECTING...";
+        connectWebSocket();
+        
+        // Update timer regularly
+        setInterval(updateTimer, 100);
+    </script>
+</body>
+</html>

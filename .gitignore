@@ -1,0 +1,255 @@
+# VideoPlayer - GitIgnore Configuration
+
+# ==============================================================================
+# GENERAL IGNORES
+# ==============================================================================
+
+# OS-specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Icon?
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.tmp
+*.bak
+
+# Log files
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ==============================================================================
+# RUST / TAURI IGNORES
+# ==============================================================================
+
+# Rust build artifacts
+src-tauri/target/
+src-tauri/Cargo.lock
+
+# Tauri build output
+src-tauri/gen/
+src-tauri/WixTools/
+
+# Generated bundles
+src-tauri/target/release/bundle/
+src-tauri/target/debug/bundle/
+
+# Platform-specific bundles
+*.app
+*.dmg
+*.pkg
+*.deb
+*.rpm
+*.AppImage
+*.exe
+*.msi
+*.nsis
+
+# ==============================================================================
+# NODE.JS IGNORES
+# ==============================================================================
+
+# Dependencies
+node_modules/
+webrtc/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Package lock files (keep one, comment others as needed)
+# Uncomment the one you're NOT using:
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# ==============================================================================
+# VIDEO PLAYER SPECIFIC
+# ==============================================================================
+
+# Video files for testing (add extensions as needed)
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.webm
+*.flv
+*.wmv
+*.m4v
+test-videos/
+sample-videos/
+
+# FFmpeg temporary files
+*.ffmpeg_temp
+ffmpeg_*.log
+
+# WebRTC temporary files
+webrtc_*.tmp
+stream_*.cache
+
+# Lock files for single instance
+/tmp/videoplayer.lock
+videoplayer.lock
+
+# ==============================================================================
+# BUILD AND DIST IGNORES
+# ==============================================================================
+
+# Build directories
+build/
+dist/
+out/
+target/
+
+# Generated files
+*.generated.*
+*.build.*
+
+# ==============================================================================
+# DEVELOPMENT IGNORES  
+# ==============================================================================
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Debug files
+debug/
+*.debug
+*.trace
+
+# Temporary directories
+temp/
+tmp/
+.temp/
+.tmp/
+
+# Test artifacts
+test-results/
+coverage/
+.nyc_output/
+
+# ==============================================================================
+# BACKUP AND ARCHIVE IGNORES
+# ==============================================================================
+
+# Backup files
+*.backup
+*.bak
+*.orig
+*.old
+*~
+
+# Archive files
+*.tar.gz
+*.tar.bz2
+*.zip
+*.rar
+*.7z
+
+# ==============================================================================
+# DOCUMENTATION IGNORES (if using generators)
+# ==============================================================================
+
+# Generated docs (uncomment if using doc generators)
+# docs/generated/
+# api-docs/
+# *.md.backup
+
+# ==============================================================================
+# PLATFORM SPECIFIC IGNORES
+# ==============================================================================
+
+# Windows
+*.exe
+*.pdb
+*.dll
+*.cache
+*.obj
+
+# macOS
+*.dSYM/
+*.xcuserstate
+
+# Linux
+*.so
+*.a
+core
+
+# ==============================================================================
+# SECURITY SENSITIVE FILES
+# ==============================================================================
+
+# Private keys and certificates
+*.pem
+*.key
+*.crt
+*.cert
+*.p12
+*.pfx
+
+# Configuration with secrets
+secrets.json
+config.secret.*
+.secret
+
+# ==============================================================================
+# PERFORMANCE AND CACHE
+# ==============================================================================
+
+# Cache directories
+.cache/
+.npm/
+.yarn/
+.pnpm/
+
+# Electron cache (if used)
+electron-builder-cache/
+
+# Next.js cache (if used)
+.next/
+
+# Rust incremental compilation cache
+**/*.rs.bk
+
+# ==============================================================================
+# CUSTOM PROJECT IGNORES
+# ==============================================================================
+
+# Add your custom ignores here:
+# custom-config.json
+# local-settings.json
+
+# Development only files
+dev-notes.txt
+todo.txt
+scratch/
+
+# Local configuration overrides
+local.config.*
+*.local.*

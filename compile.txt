@@ -1,0 +1,22 @@
+
+  ✅ macOS:
+  - ARM64 (Silicon): ✅ Déjà généré
+  - x64 (Intel): ✅ Supporté avec targets: "all"
+
+  ✅ Windows:
+  - x64: ✅ Supporté
+  - ARM64: ✅ Supporté (Windows 11 ARM)
+
+  ✅ Linux:
+  - x64: ✅ Supporté
+  - ARM64: ✅ Supporté
+
+  Pour générer les builds pour d'autres plateformes, utilisez:
+  # macOS Intel
+  npm run tauri build -- --target x86_64-apple-darwin
+
+  # Windows 
+  npm run tauri build -- --target x86_64-pc-windows-msvc
+
+  # Linux
+  npm run tauri build -- --target x86_64-unknown-linux-gnu
