@@ -1,11 +1,11 @@
 # ⚡ Quick Build Guide
 
-## 🎯 Workflows Disponibles
+## 🎯 Workflows Disponibles (TOUS MANUELS)
 
-### **🔄 Automatique :**
-- **`Build VideoPlayer`** - Toutes plateformes (lent, mais complet)
+### **🚀 Multi-plateformes :**
+- **`🚀 Build All Platforms`** - Windows + macOS + Linux (10-15 min)
 
-### **⚡ Manuels (RAPIDE) :**
+### **⚡ Plateformes individuelles (RAPIDE) :**
 - **`🪟 Windows x64 Only`** - Windows x64 (~3-5 min)
 - **`🪟 Windows ARM64 Only`** - Windows ARM64 (~3-5 min)
 - **`🍎 macOS ARM64 Only`** - macOS Apple Silicon (~3-5 min)  
@@ -30,9 +30,9 @@
 ## 📱 Interface GitHub Actions
 
 ```
-Actions
-├── 🔄 Build VideoPlayer          ← Automatique (toutes plateformes)
-├── 🪟 Windows x64 Only          ← CLIQUE ICI pour Windows x64
+Actions (TOUS MANUELS)
+├── 🚀 Build All Platforms       ← Multi-plateformes complet
+├── 🪟 Windows x64 Only          ← CLIQUE ICI pour Windows x64 rapide
 ├── 🪟 Windows ARM64 Only        ← Windows ARM (Surface Pro X, etc.)
 ├── 🍎 macOS ARM64 Only          ← Apple Silicon (M1/M2/M3)
 ├── 🍎 macOS Intel Only          ← Intel Macs
@@ -44,8 +44,9 @@ Actions
 
 ### **Développement quotidien :**
 ```bash
-# Push code → lancement automatique complet
+# Push code → AUCUN build automatique (par choix)
 git push origin main
+# Puis lancer manuellement le build souhaité
 ```
 
 ### **Test rapide Windows :**
@@ -59,16 +60,21 @@ git push origin main
 ### **Test rapide Linux :**
 1. GitHub → Actions → "🐧 Linux x64 Only" → Run workflow
 
-## ✅ Avantages
+## ✅ Avantages (TOUS MANUELS)
 
-- ✅ **Plus de queue** - Un seul runner par build
-- ✅ **Plus rapide** - Pas d'attente entre plateformes
-- ✅ **Flexibilité** - Build seulement ce dont tu as besoin
+- ✅ **Contrôle total** - Aucun build surprise sur push
+- ✅ **Plus de queue** - Un seul runner par build choisi
+- ✅ **Économie resources** - Build seulement ce dont tu as besoin
+- ✅ **Flexibilité maximale** - Choix précis de la plateforme
 - ✅ **Débug facile** - Erreurs isolées par plateforme
 
-## 🔄 Workflow complet toujours disponible
+## 🚀 Options de build
 
-Le workflow principal "Build VideoPlayer" reste pour :
-- **Push automatiques** (CI/CD)
-- **Pull requests** (validation)
-- **Build complet** quand tu veux tout tester
+### **Rapide (1 plateforme) :**
+- **`🪟 Windows x64 Only`** etc. → 3-5 min
+
+### **Complet (toutes plateformes) :**
+- **`🚀 Build All Platforms`** → 10-15 min
+
+### **Release officielle :**
+- **`🎁 Manual Release`** → GitHub Release

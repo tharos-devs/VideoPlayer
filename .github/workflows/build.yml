@@ -1,11 +1,7 @@
-name: Build VideoPlayer
+name: 🚀 Build All Platforms
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch: # Manual triggering
+  workflow_dispatch: # Manual triggering only
 
 permissions:
   contents: write
