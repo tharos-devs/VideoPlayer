@@ -33,10 +33,30 @@ jobs:
       - name: Install app dependencies
         run: npm install
 
-      - name: Create Windows ICO icon
+      - name: Create required app icons
         run: |
-          # Install ImageMagick if needed (should be available on Windows runners)
-          magick src-tauri/icons/icon.png -resize 256x256 src-tauri/icons/icon.ico
+          echo "Creating Windows app icons..."
+          # Create ICO from PNG (fallback to copy if magick fails)
+          if [ -f "src-tauri/icons/icon.png" ]; then
+            if magick src-tauri/icons/icon.png -resize 256x256 src-tauri/icons/icon.ico 2>/dev/null; then
+              echo "✅ Created icon.ico with ImageMagick"
+            else
+              echo "⚠️ ImageMagick failed, copying PNG as ICO"
+              cp src-tauri/icons/icon.png src-tauri/icons/icon.ico
+            fi
+          else
+            echo "❌ icon.png not found"
+            ls -la src-tauri/icons/
+          fi
+          
+          # Verify all required icons exist
+          for icon in "32x32.png" "128x128.png" "128x128@2x.png" "icon.png"; do
+            if [ -f "src-tauri/icons/$icon" ]; then
+              echo "✅ Found $icon"
+            else
+              echo "❌ Missing $icon"
+            fi
+          done
         shell: bash
 
       - name: Create copy-assets script

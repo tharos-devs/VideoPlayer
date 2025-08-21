@@ -20,3 +20,15 @@
 
   # Linux
   npm run tauri build -- --target x86_64-unknown-linux-gnu
+
+
+
+    # Push ton code
+  git add .
+  git commit -m "Fix build configuration and icons"
+  git push origin main
+
+  Ou manuellement :
+  1. Va sur GitHub → Actions → "Build Windows x64"
+  2. Clic "Run workflow"
+  3. Télécharge l'artefact videoplayer-windows-x64

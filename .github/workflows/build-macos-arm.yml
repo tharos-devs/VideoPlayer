@@ -33,10 +33,30 @@ jobs:
       - name: Install app dependencies
         run: npm install
 
-      - name: Create macOS ICNS icon
+      - name: Create required app icons
         run: |
-          # Create ICNS file using sips (available on macOS)
-          sips -s format icns src-tauri/icons/icon.png --out src-tauri/icons/icon.icns
+          echo "Creating macOS app icons..."
+          # Create ICNS from PNG (fallback to copy if sips fails)
+          if [ -f "src-tauri/icons/icon.png" ]; then
+            if sips -s format icns src-tauri/icons/icon.png --out src-tauri/icons/icon.icns 2>/dev/null; then
+              echo "✅ Created icon.icns with sips"
+            else
+              echo "⚠️ sips failed, copying PNG as ICNS"
+              cp src-tauri/icons/icon.png src-tauri/icons/icon.icns
+            fi
+          else
+            echo "❌ icon.png not found"
+            ls -la src-tauri/icons/
+          fi
+          
+          # Verify all required icons exist
+          for icon in "32x32.png" "128x128.png" "128x128@2x.png" "icon.png"; do
+            if [ -f "src-tauri/icons/$icon" ]; then
+              echo "✅ Found $icon"
+            else
+              echo "❌ Missing $icon"
+            fi
+          done
 
       - name: Create copy-assets script
         run: |

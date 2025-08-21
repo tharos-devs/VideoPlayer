@@ -1,0 +1,50 @@
+📋 Récapitulatif des workflows
+
+  🎯 Workflows disponibles :
+
+  | Workflow                | Plateformes           |
+  Déclenchement  | Utilisation                  |
+  |-------------------------|-----------------------|---------
+  -------|------------------------------|
+  | build.yml               | macOS, Linux, Windows | Push/PR
+         | Build rapide multiplateforme |
+  | build-windows.yml       | Windows x64           |
+  Push/PR/Manuel | Windows uniquement           |
+  | build-macos-arm.yml     | macOS ARM64           |
+  Push/PR/Manuel | macOS Apple Silicon          |
+  | build-all-platforms.yml | TOUTES                |
+  Push/PR/Manuel | Build complet                |
+  | release.yml             | TOUTES                |
+  Tags/Manuel    | Release officielle           |
+
+  🏗️ Architectures supportées :
+
+  Windows :
+
+  - ✅ x64 (Intel/AMD 64-bit)
+  - ✅ ARM64 (Windows 11 ARM)
+
+  macOS :
+
+  - ✅ x64 (Intel Macs)
+  - ✅ ARM64 (Apple Silicon M1/M2/M3)
+
+  Linux :
+
+  - ✅ x64 (Most distributions)
+
+  🚀 Comment utiliser :
+
+  Pour développement :
+  git push origin main  # Déclenche build-all-platforms.yml
+
+  Pour release :
+  git tag v1.0.0
+  git push --tags  # Déclenche release.yml
+
+  Manuel :
+  - Va sur GitHub Actions → Sélectionne le workflow → "Run
+  workflow"
+
+  Tous les builds incluront FFmpeg intégré et seront prêts à 
+  distribuer !
