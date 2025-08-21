@@ -1,7 +1,7 @@
 {
-  "name": "videoplayer",
+  "name": "VideoPlayer",
   "version": "1.0.0",
-  "description": "Ultra-low latency video player with WebRTC streaming",
+  "description": "Video PLayer",
   "main": "src-tauri/src/main.rs",
   "scripts": {
     "tauri": "tauri",

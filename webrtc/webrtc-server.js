@@ -4,6 +4,14 @@ const ffmpeg = require('fluent-ffmpeg');
 const fs = require('fs');
 const path = require('path');
 
+// Configuration des binaires statiques FFmpeg
+const ffmpegPath = require('ffmpeg-static');
+const ffprobePath = require('ffprobe-static').path;
+
+console.log('📦 Using bundled FFmpeg binaries:');
+console.log('   ffmpeg:', ffmpegPath);
+console.log('   ffprobe:', ffprobePath);
+
 class WebRTCVideoStreamer {
     constructor() {
         this.app = express();
@@ -308,7 +316,7 @@ class WebRTCVideoStreamer {
         
         
         try {
-            this.ffmpegProcess = spawn('ffmpeg', ffmpegArgs);
+            this.ffmpegProcess = spawn(ffmpegPath, ffmpegArgs);
             
             let frameBuffer = Buffer.alloc(0);
             const frameStart = Buffer.from([0xFF, 0xD8]); // JPEG start
@@ -407,7 +415,7 @@ class WebRTCVideoStreamer {
         ];
         
         try {
-            this.staticFrameProcess = spawn('ffmpeg', ffmpegArgs);
+            this.staticFrameProcess = spawn(ffmpegPath, ffmpegArgs);
             
             let frameBuffer = Buffer.alloc(0);
             
@@ -447,7 +455,7 @@ class WebRTCVideoStreamer {
         return new Promise((resolve) => {
             const { spawn } = require('child_process');
             
-            const ffprobe = spawn('ffprobe', [
+            const ffprobe = spawn(ffprobePath, [
                 '-v', 'quiet',
                 '-show_entries', 'format=duration',
                 '-of', 'csv=p=0',

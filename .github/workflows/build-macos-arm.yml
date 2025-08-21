@@ -1,0 +1,68 @@
+name: Build macOS ARM64
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  build-macos-arm:
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install app dependencies
+        run: npm install
+
+      - name: Create macOS ICNS icon
+        run: |
+          # Create ICNS file using sips (available on macOS)
+          sips -s format icns src-tauri/icons/icon.png --out src-tauri/icons/icon.icns
+
+      - name: Create copy-assets script
+        run: |
+          echo '#!/bin/bash' > copy-assets.sh
+          echo 'echo "Copying assets..."' >> copy-assets.sh
+          echo '# Add your asset copying logic here' >> copy-assets.sh
+          chmod +x copy-assets.sh
+
+      - name: Build macOS ARM app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: macos-arm-v__VERSION__
+          releaseName: 'VideoPlayer macOS ARM v__VERSION__'
+          releaseBody: 'macOS ARM64 (Apple Silicon) build of VideoPlayer'
+          releaseDraft: true
+          prerelease: false
+          args: --target aarch64-apple-darwin
+
+      - name: Upload macOS ARM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: videoplayer-macos-arm64
+          path: |
+            src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+            src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app
+          retention-days: 30
