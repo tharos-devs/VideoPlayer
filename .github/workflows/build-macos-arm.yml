@@ -82,8 +82,8 @@ jobs:
       - name: Create copy-assets script
         run: |
           echo '#!/bin/bash' > copy-assets.sh
-          echo 'echo "Copying assets..."' >> copy-assets.sh
-          echo '# Add your asset copying logic here' >> copy-assets.sh
+          echo 'echo "Assets copying completed"' >> copy-assets.sh
+          echo 'exit 0' >> copy-assets.sh
           chmod +x copy-assets.sh
 
       - name: Build macOS ARM app

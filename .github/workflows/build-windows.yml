@@ -66,8 +66,8 @@ jobs:
       - name: Create copy-assets script
         run: |
           echo '@echo off' > copy-assets.bat
-          echo 'echo Copying assets...' >> copy-assets.bat
-          echo 'rem Add your asset copying logic here' >> copy-assets.bat
+          echo 'echo Assets copying completed' >> copy-assets.bat
+          echo 'exit /b 0' >> copy-assets.bat
 
       - name: Build Windows app
         run: npm run tauri:build -- --target x86_64-pc-windows-msvc

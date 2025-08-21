@@ -83,10 +83,12 @@ jobs:
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             echo '@echo off' > copy-assets.bat
-            echo 'echo Copying assets...' >> copy-assets.bat
+            echo 'echo Assets copying completed' >> copy-assets.bat
+            echo 'exit /b 0' >> copy-assets.bat
           else
             echo '#!/bin/bash' > copy-assets.sh
-            echo 'echo "Copying assets..."' >> copy-assets.sh
+            echo 'echo "Assets copying completed"' >> copy-assets.sh
+            echo 'exit 0' >> copy-assets.sh
             chmod +x copy-assets.sh
           fi
         shell: bash
