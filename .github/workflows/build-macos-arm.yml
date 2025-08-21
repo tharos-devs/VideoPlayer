@@ -44,21 +44,14 @@ jobs:
           # Ensure icons directory exists
           mkdir -p src-tauri/icons
           
-          # Create a basic icon if none exists
+          # Verify icons exist (they should be committed now)
           if [ ! -f "src-tauri/icons/icon.png" ]; then
-            echo "⚠️ No icon.png found, creating a basic one"
-            # Create a simple colored square as fallback
-            python3 -c "
-from PIL import Image, ImageDraw
-import os
-if not os.path.exists('src-tauri/icons/icon.png'):
-    img = Image.new('RGBA', (512, 512), (70, 130, 180, 255))
-    draw = ImageDraw.Draw(img)
-    draw.rectangle([128, 128, 384, 384], fill=(255, 255, 255, 255))
-    draw.text((200, 240), 'VP', fill=(70, 130, 180, 255))
-    img.save('src-tauri/icons/icon.png')
-    print('✅ Created basic icon.png')
-" 2>/dev/null || echo "⚠️ Python/PIL not available, workflow will handle missing icons"
+            echo "❌ icon.png missing from repository!"
+            echo "Available files:"
+            ls -la src-tauri/icons/ 2>/dev/null || echo "Icons directory missing"
+            exit 1
+          else
+            echo "✅ Found icon.png"
           fi
           
           # Create ICNS from PNG (fallback to copy if sips fails)
