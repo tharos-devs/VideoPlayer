@@ -1,15 +1,16 @@
 # 🚀 Guide des Workflows GitHub Actions
 
-## 📋 Workflows Disponibles
+## 📋 Workflows Disponibles (SIMPLIFIÉ)
 
-### **1. Build automatiques** (Sur chaque push)
-- **`build.yml`** : Build rapide multiplateforme
-- **`build-windows.yml`** : Windows x64 uniquement  
-- **`build-macos-arm.yml`** : macOS Apple Silicon uniquement
+### **1. Build Principal** 
+- **`build.yml`** : **Windows x64**, **macOS ARM64**, **Linux x64**
+  - Déclenchement : Push/PR sur `main` + Manuel
+  - Artifacts : 3 builds séparés
 
-### **2. Build complets**
-- **`build-all-platforms.yml`** : Toutes les plateformes et architectures
-- **`manual-release.yml`** : Release officielle avec téléchargements
+### **2. Release Officielle**
+- **`manual-release.yml`** : Release complète avec toutes plateformes
+  - Déclenchement : Manuel uniquement
+  - Résultat : GitHub Release avec téléchargements
 
 ## 🎯 Comment Récupérer tes Builds
 
@@ -42,17 +43,10 @@ Une fois terminé → **Releases** → Télécharge les fichiers
 
 ## 🎁 Ce que tu obtiens
 
-### **Windows x64** 
-- `VideoPlayer.exe` (installateur)
-- `VideoPlayer.msi` (package)
-
-### **macOS Apple Silicon**
-- `VideoPlayer.app` (application) 
-- `VideoPlayer.dmg` (installateur)
-
-### **Linux x64**
-- `VideoPlayer.deb` (Ubuntu/Debian)
-- `VideoPlayer.AppImage` (universel)
+### **3 Artifacts séparés :**
+- **`videoplayer-windows-x64`** : `.msi` + `.exe` installateurs
+- **`videoplayer-macos-arm64`** : `.app` + `.dmg` pour Apple Silicon  
+- **`videoplayer-linux-x64`** : `.deb` + `.AppImage` pour Linux
 
 ## ✅ Tous les builds incluent :
 
