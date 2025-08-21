@@ -1,0 +1,102 @@
+name: Manual Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+      platforms:
+        description: 'Platforms to build (comma-separated: windows, macos, linux, all)'
+        required: true
+        default: 'all'
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  manual-release:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            target: x86_64-pc-windows-msvc
+            name: Windows x64
+            
+          - platform: macos-latest
+            target: aarch64-apple-darwin
+            name: macOS Apple Silicon
+            
+          - platform: ubuntu-20.04
+            target: x86_64-unknown-linux-gnu
+            name: Linux x64
+
+    runs-on: ${{ matrix.platform }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+          
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+          
+      - name: Install Linux dependencies
+        if: matrix.platform == 'ubuntu-20.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
+          
+      - name: Install dependencies
+        run: npm install
+        
+      - name: Create icons and assets
+        run: |
+          mkdir -p src-tauri/icons
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            magick src-tauri/icons/icon.png -resize 256x256 src-tauri/icons/icon.ico 2>/dev/null || cp src-tauri/icons/icon.png src-tauri/icons/icon.ico
+            echo '@echo off' > copy-assets.bat && echo 'echo Assets copied' >> copy-assets.bat
+          elif [[ "$RUNNER_OS" == "macOS" ]]; then
+            sips -s format icns src-tauri/icons/icon.png --out src-tauri/icons/icon.icns 2>/dev/null || cp src-tauri/icons/icon.png src-tauri/icons/icon.icns
+            echo '#!/bin/bash' > copy-assets.sh && echo 'echo Assets copied' >> copy-assets.sh && chmod +x copy-assets.sh
+          else
+            echo '#!/bin/bash' > copy-assets.sh && echo 'echo Assets copied' >> copy-assets.sh && chmod +x copy-assets.sh
+          fi
+        shell: bash
+        
+      - name: Create GitHub Release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.event.inputs.version }}
+          releaseName: 'VideoPlayer ${{ github.event.inputs.version }}'
+          releaseBody: |
+            ## VideoPlayer ${{ github.event.inputs.version }}
+            
+            ### Features
+            - ✅ **FFmpeg bundled** - No system installation required
+            - ✅ **Cross-platform** - Windows, macOS, Linux  
+            - ✅ **Ultra-low latency** video streaming
+            - ✅ **WebRTC** real-time video control
+            
+            ### Downloads
+            - **${{ matrix.name }}**: Ready to install
+            
+            Built automatically with GitHub Actions 🚀
+          releaseDraft: false
+          prerelease: false
+          args: --target ${{ matrix.target }}

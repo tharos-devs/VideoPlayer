@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: write
+  packages: write
+
 jobs:
   build:
     strategy:
@@ -87,12 +91,13 @@ jobs:
           fi
         shell: bash
           
-      - uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build application  
+        run: npm run tauri:build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
         with:
-          tagName: app-v__VERSION__ # the action automatically replaces __VERSION__ with the app version
-          releaseName: 'VideoPlayer v__VERSION__'
-          releaseBody: 'See the assets to download this version and install.'
-          releaseDraft: true
-          prerelease: false
+          name: videoplayer-${{ matrix.platform }}
+          path: |
+            src-tauri/target/release/bundle/**/*
+          retention-days: 30

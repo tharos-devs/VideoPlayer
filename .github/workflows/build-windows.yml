@@ -7,6 +7,10 @@ on:
     branches: [ main ]
   workflow_dispatch: # Allows manual triggering
 
+permissions:
+  contents: write
+  packages: write
+
 jobs:
   build-windows:
     runs-on: windows-latest
@@ -66,16 +70,7 @@ jobs:
           echo 'rem Add your asset copying logic here' >> copy-assets.bat
 
       - name: Build Windows app
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tagName: windows-v__VERSION__
-          releaseName: 'VideoPlayer Windows v__VERSION__'
-          releaseBody: 'Windows x64 build of VideoPlayer'
-          releaseDraft: true
-          prerelease: false
-          args: --target x86_64-pc-windows-msvc
+        run: npm run tauri:build -- --target x86_64-pc-windows-msvc
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4

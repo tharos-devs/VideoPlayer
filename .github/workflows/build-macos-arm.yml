@@ -7,6 +7,10 @@ on:
     branches: [ main ]
   workflow_dispatch: # Allows manual triggering
 
+permissions:
+  contents: write
+  packages: write
+
 jobs:
   build-macos-arm:
     runs-on: macos-latest
@@ -36,6 +40,27 @@ jobs:
       - name: Create required app icons
         run: |
           echo "Creating macOS app icons..."
+          
+          # Ensure icons directory exists
+          mkdir -p src-tauri/icons
+          
+          # Create a basic icon if none exists
+          if [ ! -f "src-tauri/icons/icon.png" ]; then
+            echo "⚠️ No icon.png found, creating a basic one"
+            # Create a simple colored square as fallback
+            python3 -c "
+from PIL import Image, ImageDraw
+import os
+if not os.path.exists('src-tauri/icons/icon.png'):
+    img = Image.new('RGBA', (512, 512), (70, 130, 180, 255))
+    draw = ImageDraw.Draw(img)
+    draw.rectangle([128, 128, 384, 384], fill=(255, 255, 255, 255))
+    draw.text((200, 240), 'VP', fill=(70, 130, 180, 255))
+    img.save('src-tauri/icons/icon.png')
+    print('✅ Created basic icon.png')
+" 2>/dev/null || echo "⚠️ Python/PIL not available, workflow will handle missing icons"
+          fi
+          
           # Create ICNS from PNG (fallback to copy if sips fails)
           if [ -f "src-tauri/icons/icon.png" ]; then
             if sips -s format icns src-tauri/icons/icon.png --out src-tauri/icons/icon.icns 2>/dev/null; then
@@ -44,19 +69,22 @@ jobs:
               echo "⚠️ sips failed, copying PNG as ICNS"
               cp src-tauri/icons/icon.png src-tauri/icons/icon.icns
             fi
+            
+            # Create smaller PNG variants if missing
+            for size in "32x32" "128x128" "128x128@2x"; do
+              if [ ! -f "src-tauri/icons/${size}.png" ]; then
+                echo "Creating ${size}.png from icon.png"
+                sips -z ${size%@*} ${size%@*} src-tauri/icons/icon.png --out src-tauri/icons/${size}.png 2>/dev/null || cp src-tauri/icons/icon.png src-tauri/icons/${size}.png
+              fi
+            done
           else
-            echo "❌ icon.png not found"
-            ls -la src-tauri/icons/
+            echo "❌ Still no icon.png found after fallback"
+            ls -la src-tauri/ || echo "src-tauri directory missing"
           fi
           
-          # Verify all required icons exist
-          for icon in "32x32.png" "128x128.png" "128x128@2x.png" "icon.png"; do
-            if [ -f "src-tauri/icons/$icon" ]; then
-              echo "✅ Found $icon"
-            else
-              echo "❌ Missing $icon"
-            fi
-          done
+          # Final verification
+          echo "📋 Icon inventory:"
+          ls -la src-tauri/icons/ 2>/dev/null || echo "Icons directory missing"
 
       - name: Create copy-assets script
         run: |
@@ -66,16 +94,7 @@ jobs:
           chmod +x copy-assets.sh
 
       - name: Build macOS ARM app
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tagName: macos-arm-v__VERSION__
-          releaseName: 'VideoPlayer macOS ARM v__VERSION__'
-          releaseBody: 'macOS ARM64 (Apple Silicon) build of VideoPlayer'
-          releaseDraft: true
-          prerelease: false
-          args: --target aarch64-apple-darwin
+        run: npm run tauri:build -- --target aarch64-apple-darwin
 
       - name: Upload macOS ARM artifacts
         uses: actions/upload-artifact@v4
