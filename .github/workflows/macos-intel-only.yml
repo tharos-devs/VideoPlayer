@@ -1,0 +1,66 @@
+name: 🍎 macOS Intel Only
+
+on:
+  workflow_dispatch: # Manual trigger only
+
+permissions:
+  contents: write
+
+jobs:
+  macos-intel-build:
+    runs-on: macos-latest
+    name: Build macOS Intel x64
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-apple-darwin
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install app dependencies
+        run: npm install
+
+      - name: Create macOS app icons
+        run: |
+          if [ -f "src-tauri/icons/icon.png" ]; then
+            echo "✅ Found icon.png"
+            if sips -s format icns src-tauri/icons/icon.png --out src-tauri/icons/icon.icns 2>/dev/null; then
+              echo "✅ Created icon.icns with sips"
+            else
+              echo "⚠️ sips failed, copying PNG as ICNS"
+              cp src-tauri/icons/icon.png src-tauri/icons/icon.icns
+            fi
+          else
+            echo "❌ icon.png not found"
+            ls -la src-tauri/icons/ 2>/dev/null || echo "Icons directory missing"
+          fi
+
+      - name: Build macOS Intel application
+        run: npm run tauri:build -- --target x86_64-apple-darwin
+
+      - name: Upload macOS Intel artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: videoplayer-macos-intel-only
+          path: |
+            src-tauri/target/x86_64-apple-darwin/release/bundle/**/*
+          retention-days: 30
+
+      - name: Build Summary
+        run: |
+          echo "🎉 macOS Intel x64 build completed!"
+          echo "📦 Download: videoplayer-macos-intel-only"
+          echo "📁 Contains: .app and .dmg files for Intel Macs"

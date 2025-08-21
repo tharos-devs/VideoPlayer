@@ -1,0 +1,71 @@
+name: 🪟 Windows ARM64 Only
+
+on:
+  workflow_dispatch: # Manual trigger only
+
+permissions:
+  contents: write
+
+jobs:
+  windows-arm-build:
+    runs-on: windows-latest
+    name: Build Windows ARM64
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-pc-windows-msvc
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install app dependencies
+        run: npm install
+
+      - name: Create Windows app icons
+        run: |
+          if (Test-Path "src-tauri/icons/icon.png") {
+            Write-Host "✅ Found icon.png"
+            # Try to create ICO, fallback to copy if fails
+            try {
+              magick src-tauri/icons/icon.png -resize 256x256 src-tauri/icons/icon.ico
+              Write-Host "✅ Created icon.ico with ImageMagick"
+            } catch {
+              Copy-Item src-tauri/icons/icon.png src-tauri/icons/icon.ico
+              Write-Host "⚠️ ImageMagick failed, copied PNG as ICO"
+            }
+          } else {
+            Write-Host "❌ icon.png not found"
+            Get-ChildItem src-tauri/icons/ -ErrorAction SilentlyContinue
+          }
+        shell: powershell
+
+      - name: Build Windows ARM64 application
+        run: npm run tauri:build -- --target aarch64-pc-windows-msvc
+
+      - name: Upload Windows ARM64 artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: videoplayer-windows-arm64-only
+          path: |
+            src-tauri/target/aarch64-pc-windows-msvc/release/bundle/**/*
+          retention-days: 30
+
+      - name: Build Summary
+        run: |
+          Write-Host "🎉 Windows ARM64 build completed!"
+          Write-Host "📦 Download: videoplayer-windows-arm64-only"
+          Write-Host "📁 Contains: .msi and .exe installers for Windows ARM64"
+          Write-Host "💡 Compatible with: Windows 11 ARM, Surface Pro X, etc."
+        shell: powershell
