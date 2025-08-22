@@ -57,6 +57,7 @@ MuseScore {
         }
     }
 
+
     Timer {
         id: watcher
         interval: 100
@@ -238,6 +239,7 @@ MuseScore {
             }
         }
     }
+
 
     function sendCommand(command, params = '') {
         var url = `http://localhost:5173`;
