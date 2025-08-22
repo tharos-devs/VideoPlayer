@@ -265,13 +265,13 @@ MuseScore {
         var videoPlayer = ""
         switch (Qt.platform.os) {
           case "windows":
-            videoPlayer = normalizePath(path + "win/VideoPlayer.exe");
+            videoPlayer = normalizePath(path + "VideoPlayer.exe");
             break
           case "osx":
-            videoPlayer = normalizePath(path + "osx/VideoPlayer.app/Contents/MacOS/VideoPlayer")
+            videoPlayer = normalizePath(path + "VideoPlayer.app/Contents/MacOS/VideoPlayer")
             break
           case "linux":
-            videoPlayer = normalizePath(path + "linux/VideoPlayer.AppImage")
+            videoPlayer = normalizePath(path + "VideoPlayer")
             break  
           default:
             console.log('No video player found for this platform', Qt.platform.os)          
