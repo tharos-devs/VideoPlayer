@@ -7,19 +7,19 @@ This plugin allows you to sync video playback with MuseScore scores. Perfect for
 
 ### Windows:
 1. Download `VideoPlayer-MuseScore-Windows-x64.zip`
-2. Extract to: `C:\Users\[YourName]\Documents\MuseScore3\Plugins\VideoPlayer\`
+2. Extract to: `C:\Users\[YourName]\Documents\MuseScore4\Plugins\VideoPlayer\`
 3. Restart MuseScore
 4. Go to `Plugins → Plugin Manager` and enable "VideoPlayer"
 
 ### macOS:
 1. Download `VideoPlayer-MuseScore-macOS-ARM64.zip` (Apple Silicon) or `VideoPlayer-MuseScore-macOS-x64.zip` (Intel)
-2. Extract to: `~/Documents/MuseScore3/Plugins/VideoPlayer/`
+2. Extract to: `~/Documents/MuseScore4/Plugins/VideoPlayer/`
 3. Restart MuseScore
 4. Go to `Plugins → Plugin Manager` and enable "VideoPlayer"
 
 ### Linux:
 1. Download `VideoPlayer-MuseScore-Linux-x64.zip`
-2. Extract to: `~/Documents/MuseScore3/Plugins/VideoPlayer/`
+2. Extract to: `~/Documents/MuseScore4/Plugins/VideoPlayer/`
 3. Restart MuseScore
 4. Go to `Plugins → Plugin Manager` and enable "VideoPlayer"
 

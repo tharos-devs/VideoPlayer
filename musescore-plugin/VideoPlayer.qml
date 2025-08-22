@@ -1,209 +1,327 @@
-import QtQuick 2.9
-import QtQuick.Controls 2.2
-import QtQuick.Dialogs 1.2
+// /Applications/MuseScore\ 4.app/Contents/MacOS/mscore -d
+import QtQuick 2.15
+import QtQuick.Controls 2.15
+import QtQuick.Layouts 1.15
+import Muse.UiComponents 1.0
+import MuseScore.Playback 1.0
 import MuseScore 3.0
 
 MuseScore {
     id: plugin
-    version: "1.0.0"
-    description: "VideoPlayer - Sync video playback with MuseScore"
-    menuPath: "Plugins.VideoPlayer"
-    requiresScore: false
+    title: "Video Player"
+    description: "Video Player"
+    thumbnailName: "logo.png"
+    version: "1.0"
+    pluginType: "dialog"
 
-    property string videoPath: ""
-    property bool videoPlayerRunning: false
+    width: 400
+    height: 160
 
-    // File dialog for video selection
+    property int pluginInstanceId: Number(Math.floor(Math.random() * 10000))
+    property var videoSource: ""
+    property var playbackModel: null
+    property bool showError: false
+    property bool showMain: false
+
+    // Palette système pour s'adapter au thème
+    SystemPalette {
+        id: palette
+    }
+
+    QProcess {
+      id: qproc
+    }
+
+    PlaybackToolBarModel {
+        id: directPlaybackModel
+        Component.onCompleted: {
+            this.load();
+            plugin.playbackModel = this;
+        }
+    }
+
     FileDialog {
         id: fileDialog
-        title: "Select Video File"
-        nameFilters: ["Video files (*.mp4 *.avi *.mov *.mkv *.webm)", "All files (*)"]
+        title: "Please choose a file"
+        type: FileDialog.Load
+        visible: false
         onAccepted: {
-            videoPath = fileDialog.fileUrl.toString().replace("file://", "")
-            console.log("Selected video:", videoPath)
-            startVideoPlayer()
-            setVideoPath()
+            curScore.startCmd();
+            curScore.setMetaTag("videoSource", filePath);
+            curScore.endCmd();
+            fileDialog.visible = false;
+            sendCommand('set-video', filePath);
+        }
+        onRejected: {
+            fileDialog.visible = false;
         }
     }
 
-    // Main plugin window
-    Rectangle {
-        id: window
-        width: 400
-        height: 300
-        color: "#f0f0f0"
-        
-        Column {
-            anchors.centerIn: parent
-            spacing: 20
-            
-            Text {
-                text: "VideoPlayer for MuseScore"
-                font.pointSize: 16
-                font.bold: true
-                anchors.horizontalCenter: parent.horizontalCenter
-            }
-            
-            Text {
-                text: videoPath ? "Video: " + videoPath.split('/').pop() : "No video selected"
-                anchors.horizontalCenter: parent.horizontalCenter
-                color: videoPath ? "green" : "red"
-            }
-            
-            Row {
-                spacing: 10
-                anchors.horizontalCenter: parent.horizontalCenter
-                
-                Button {
-                    text: "Select Video"
-                    onClicked: fileDialog.open()
-                }
-                
-                Button {
-                    text: "Test Play"
-                    enabled: videoPath !== ""
-                    onClicked: sendPlayCommand()
-                }
-                
-                Button {
-                    text: "Test Pause"
-                    enabled: videoPath !== ""
-                    onClicked: sendPauseCommand()
-                }
-            }
-            
-            Text {
-                text: "Use MuseScore spacebar to play/pause video"
-                anchors.horizontalCenter: parent.horizontalCenter
-                font.italic: true
-                color: "gray"
-            }
-            
-            Text {
-                text: videoPlayerRunning ? "✅ VideoPlayer connected" : "❌ VideoPlayer not running"
-                anchors.horizontalCenter: parent.horizontalCenter
-                color: videoPlayerRunning ? "green" : "red"
-            }
-        }
-    }
-
-    // Start VideoPlayer executable
-    function startVideoPlayer() {
-        console.log("Starting VideoPlayer...")
-        
-        // Determine executable path based on platform
-        var executablePath = ""
-        var pluginDir = Qt.resolvedUrl(".").toString().replace("file://", "")
-        
-        if (Qt.platform.os === "windows") {
-            executablePath = pluginDir + "VideoPlayer.exe"
-        } else if (Qt.platform.os === "osx") {
-            executablePath = pluginDir + "VideoPlayer.app/Contents/MacOS/VideoPlayer"
-        } else if (Qt.platform.os === "linux") {
-            executablePath = pluginDir + "VideoPlayer"
-        }
-        
-        console.log("Executable path:", executablePath)
-        
-        // Start the VideoPlayer process
-        var process = Qt.createQmlObject('
-            import QtQuick 2.9
-            import Qt.labs.platform 1.0
-            Process {
-                id: videoPlayerProcess
-                program: "' + executablePath + '"
-                onFinished: {
-                    console.log("VideoPlayer process finished")
-                    videoPlayerRunning = false
-                }
-            }
-        ', plugin)
-        
-        try {
-            process.start()
-            videoPlayerRunning = true
-            console.log("VideoPlayer started successfully")
-            
-            // Wait a moment for the server to start
-            delayTimer.start()
-        } catch (error) {
-            console.error("Failed to start VideoPlayer:", error)
-            videoPlayerRunning = false
-        }
-    }
-
-    // Send video path to VideoPlayer
-    function setVideoPath() {
-        if (!videoPath) return
-        
-        var xhr = new XMLHttpRequest()
-        xhr.open("GET", "http://localhost:5173/set-video?path=" + encodeURIComponent(videoPath))
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState === XMLHttpRequest.DONE) {
-                if (xhr.status === 200) {
-                    console.log("Video path set successfully")
-                } else {
-                    console.error("Failed to set video path:", xhr.status)
-                }
-            }
-        }
-        xhr.send()
-    }
-
-    // Send play command
-    function sendPlayCommand() {
-        sendCommand("play")
-    }
-
-    // Send pause command  
-    function sendPauseCommand() {
-        sendCommand("pause")
-    }
-
-    // Send command to VideoPlayer
-    function sendCommand(command) {
-        var xhr = new XMLHttpRequest()
-        xhr.open("GET", "http://localhost:5173/" + command)
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState === XMLHttpRequest.DONE) {
-                if (xhr.status === 200) {
-                    console.log("Command sent:", command)
-                } else {
-                    console.error("Failed to send command:", command, xhr.status)
-                }
-            }
-        }
-        xhr.send()
-    }
-
-    // Timer for delayed operations
     Timer {
-        id: delayTimer
-        interval: 2000 // 2 seconds
+        id: watcher
+        interval: 100
+        running: true
+        repeat: true
+
+        property bool lastPlayingState: false
+        property string lastPosition: "00:00:00.00"
+
         onTriggered: {
-            if (videoPath) {
-                setVideoPath()
+            // Shield to avoid multiple plugin instance
+            const videoPlayerId = Number(curScore.metaTag("videoPlayerId"));
+            if (videoPlayerId && videoPlayerId !== pluginInstanceId) {
+                console.log("INSTANCE", pluginInstanceId, "plugin terminated");
+                watcher.stop();
+                quit();
+            }
+
+            if (!playbackModel || !playbackModel.items || playbackModel.items.length < 2)
+                return;
+
+            // Obtenir la position actuelle
+            var currentPosition = "00:00:00.00";
+            var timingInSeconds = 0.0;
+
+            if (playbackModel.playTime) {
+                var time = playbackModel.playTime;
+                currentPosition = time.getHours().toString().padStart(2, '0') + ":" + time.getMinutes().toString().padStart(2, '0') + ":" + time.getSeconds().toString().padStart(2, '0') + "." + Math.floor(time.getMilliseconds() / 10).toString().padStart(2, '0');
+
+                // Convertir en secondes.millisecondes pour sendCommand
+                timingInSeconds = time.getHours() * 3600 + time.getMinutes() * 60 + time.getSeconds() + (time.getMilliseconds() / 1000);
+            }
+
+            // Détecter l'état actuel
+            var playButton = playbackModel.items[1];
+            var isPlaying = (playButton.icon === 62409);
+
+            // Détecter les changements d'état (play/pause/rewind)
+            var stateChanged = (lastPlayingState !== isPlaying);
+            var positionJumped = (Math.abs(parsePosition(currentPosition) - parsePosition(lastPosition)) > 1);
+
+            if (stateChanged || positionJumped) {
+                var action = "";
+                if (stateChanged) {
+                    action = isPlaying ? "play" : "pause";
+                } else if (positionJumped) {
+                    action = "seek";
+                }
+
+                console.log(action + " - Position:", currentPosition, "- Timing:", timingInSeconds);
+
+                // Envoyer la position en secondes.millisecondes
+                sendCommand(action, timingInSeconds);
+            }
+
+            lastPlayingState = isPlaying;
+            lastPosition = currentPosition; // CORRECTION: était "positionJumped" avant !
+        }
+
+        function parsePosition(timeStr) {
+            var parts = timeStr.split(":");
+            return parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseFloat(parts[2]);
+        }
+    }
+
+    // Vue d'erreur
+    Rectangle {
+        id: errorView
+        visible: showError
+        anchors.fill: parent
+        color: palette.window
+
+        ColumnLayout {
+            anchors.centerIn: parent
+            spacing: 10
+
+            Text {
+                text: "Video Player"
+                font.pixelSize: 16
+                font.bold: true
+                Layout.alignment: Qt.AlignHCenter
+                color: palette.windowText
+            }
+
+            Text {
+                text: "Only for Musescore 4+"
+                font.pixelSize: 14
+                Layout.alignment: Qt.AlignHCenter
+                color: palette.windowText
+            }
+
+            FlatButton {
+                text: "OK"
+                Layout.alignment: Qt.AlignHCenter
+                Layout.preferredWidth: 100
+                accentButton: true
+
+                onClicked: {
+                    quit();
+                }
             }
         }
     }
 
-    // Override MuseScore spacebar behavior
-    property bool spacebarOverride: false
-    
-    function interceptSpacebar() {
-        if (videoPath && videoPlayerRunning) {
-            // Toggle play/pause when spacebar is pressed
-            if (curScore.playMode === Score.PLAYING) {
-                sendPauseCommand()
+    // Vue principale
+    Rectangle {
+        id: mainView
+        visible: showMain
+        anchors.fill: parent
+        color: palette.window
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 20
+            spacing: 10
+
+            // Question principale
+            Text {
+                text: "Load file or select new video?"
+                font.pixelSize: 14
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                color: palette.windowText
+            }
+
+            // Texte d'information sur le fichier
+            Text {
+                text: "Video file: " + videoSource
+                font.pixelSize: 12
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                color: palette.windowText
+            }
+
+            // Espacement flexible
+            Item {
+                Layout.fillHeight: true
+            }
+
+            // Boutons d'action
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignHCenter
+                spacing: 10
+
+                FlatButton {
+                    id: loadButton
+                    text: "Load"
+                    accentButton: true
+                    focus: true
+                    Layout.preferredWidth: 100
+
+                    onClicked: {
+                        sendCommand('set-video', videoSource);
+                        quit();
+                    }
+                }
+
+                FlatButton {
+                    id: selectButton
+                    text: "Select"
+                    Layout.preferredWidth: 100
+
+                    onClicked: {
+                        fileDialog.visible = true;
+                        quit();
+                    }
+                }
+
+                FlatButton {
+                    id: cancelButton
+                    text: "Cancel"
+                    Layout.preferredWidth: 100
+
+                    onClicked: {
+                        quit();
+                    }
+                }
+            }
+        }
+    }
+
+    function sendCommand(command, params = '') {
+        var url = `http://localhost:5173`;
+        switch (command) {
+        case 'set-video':
+            url = `${url}/set-video?path=${encodeURIComponent(params)}`
+            break;
+        case 'pause':
+            url = `${url}/${command}`;
+            break;
+        default:
+            url = `${url}/${command}/${params}`;
+            break;
+        }
+
+        var xhr = new XMLHttpRequest()
+        xhr.open("GET", url, true)
+        xhr.send()
+
+        console.log("INSTANCE", pluginInstanceId, "sendCommand: ", command, params, url)
+    }
+
+    function getVideoPlayer() {
+        const path = Qt.resolvedUrl(".");
+        var videoPlayer = ""
+        switch (Qt.platform.os) {
+          case "windows":
+            videoPlayer = normalizePath(path + "VideoPlayer.exe");
+            break
+          case "osx":
+            videoPlayer = normalizePath(path + "VideoPlayer.app/Contents/MacOS/VideoPlayer")
+            break
+          case "linux":
+            videoPlayer = normalizePath(path + "VideoPlayer")
+            break  
+          default:
+            console.log('No video player found for this platform', Qt.platform.os)          
+        }
+        console.log('videoPlayer: ', videoPlayer)
+        return videoPlayer
+    }
+
+    function normalizePath(path) {
+        var p = path.toString()
+        // Supprime "file:///" ou "file://" (et conserve le premier / pour Unix)
+        var normalizedPath
+        if (p.startsWith('file:///')) {
+            // Système UNIX (Linux/macOS), on garde le premier '/'
+            normalizedPath = p.replace(/^file:\/{3}/, '/')
+        } else if (p.startsWith('file://')) {
+            // Cas possible pour Windows, pas de premier '/' après 'file://'
+            normalizedPath = p.replace(/^file:\/{2}/, '')
+        } else {
+            normalizedPath = p
+        }
+        return normalizedPath
+    }     
+
+    Component.onCompleted: {
+        if (mscoreMajorVersion < 4) {
+            showError = true;
+        } else {
+            videoSource = curScore.metaTag("videoSource");
+            if (videoSource && videoSource !== "") {
+                showMain = true
             } else {
-                sendPlayCommand()
+                fileDialog.visible = true
             }
         }
     }
 
     onRun: {
-        // Show the plugin window
-        window.visible = true
-        console.log("VideoPlayer plugin loaded")
+        if (!curScore) {
+            console.log("No score opened")
+            quit()
+            return
+        }
+
+        console.log("INSTANCE", pluginInstanceId, "plugin started")
+        curScore.startCmd()
+        curScore.setMetaTag("videoPlayerId", pluginInstanceId)
+        curScore.endCmd()
+
+        const videoPlayer = getVideoPlayer()
+        qproc.startWithArgs(videoPlayer, [])
     }
 }

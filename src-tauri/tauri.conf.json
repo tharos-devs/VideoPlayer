@@ -53,7 +53,7 @@
         "setMinSize": false,
         "setMaxSize": false,
         "setPosition": false,
-        "setFullscreen": true,
+        "setFullscreen": false,
         "setFocus": false,
         "setIcon": false,
         "setSkipTaskbar": false,

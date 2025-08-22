@@ -15,6 +15,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Get version from package.json
+        id: get_version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version detected: $VERSION"
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -71,24 +78,24 @@ jobs:
       - name: Create ZIP package
         run: |
           cd musescore-package
-          zip -r ../VideoPlayer-MuseScore-macOS-ARM64.zip .
+          zip -r ../VideoPlayer-MuseScore-macOS-ARM64-v${{ steps.get_version.outputs.version }}.zip .
           cd ..
           
-          echo "✅ Created VideoPlayer-MuseScore-macOS-ARM64.zip"
+          echo "✅ Created VideoPlayer-MuseScore-macOS-ARM64-v${{ steps.get_version.outputs.version }}.zip"
           
           # Show ZIP info
-          ls -lh VideoPlayer-MuseScore-macOS-ARM64.zip
+          ls -lh VideoPlayer-MuseScore-macOS-ARM64-v${{ steps.get_version.outputs.version }}.zip
 
       - name: Upload MuseScore package
         uses: actions/upload-artifact@v4
         with:
-          name: VideoPlayer-MuseScore-macOS-ARM64
-          path: VideoPlayer-MuseScore-macOS-ARM64.zip
+          name: VideoPlayer-MuseScore-macOS-ARM64-v${{ steps.get_version.outputs.version }}
+          path: VideoPlayer-MuseScore-macOS-ARM64-v${{ steps.get_version.outputs.version }}.zip
           retention-days: 30
 
       - name: Package Summary
         run: |
           echo "🎉 macOS ARM64 MuseScore package completed!"
-          echo "📦 Download: VideoPlayer-MuseScore-macOS-ARM64"
+          echo "📦 Download: VideoPlayer-MuseScore-macOS-ARM64-v${{ steps.get_version.outputs.version }}"
           echo "💻 Compatible: Apple Silicon (M1/M2/M3/M4)"
           echo "📁 Extract to: ~/Documents/MuseScore3/Plugins/VideoPlayer/"

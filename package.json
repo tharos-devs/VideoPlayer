@@ -7,7 +7,8 @@
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
-    "tauri:build:debug": "tauri build --debug"
+    "tauri:build:debug": "tauri build --debug",
+    "sync-version": "node sync-version.js"
   },
   "author": "SFI",
   "license": "MIT",

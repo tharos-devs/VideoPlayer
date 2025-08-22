@@ -43,6 +43,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Get version from package.json
+        id: get_version
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version detected: $VERSION"
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -168,11 +176,11 @@ jobs:
       - name: Create ZIP package (Windows)
         if: runner.os == 'Windows'
         run: |
-          Compress-Archive -Path "musescore-package\*" -DestinationPath "VideoPlayer-MuseScore-${{ matrix.name }}.zip"
-          Write-Host "✅ Created VideoPlayer-MuseScore-${{ matrix.name }}.zip"
+          Compress-Archive -Path "musescore-package\*" -DestinationPath "VideoPlayer-MuseScore-${{ matrix.name }}-v${{ steps.get_version.outputs.version }}.zip"
+          Write-Host "✅ Created VideoPlayer-MuseScore-${{ matrix.name }}-v${{ steps.get_version.outputs.version }}.zip"
           
           # Show ZIP info
-          $zipInfo = Get-Item "VideoPlayer-MuseScore-${{ matrix.name }}.zip"
+          $zipInfo = Get-Item "VideoPlayer-MuseScore-${{ matrix.name }}-v${{ steps.get_version.outputs.version }}.zip"
           Write-Host "📊 ZIP size: $($zipInfo.Length / 1MB) MB"
         shell: powershell
 
@@ -180,24 +188,24 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           cd musescore-package
-          zip -r ../VideoPlayer-MuseScore-${{ matrix.name }}.zip .
+          zip -r ../VideoPlayer-MuseScore-${{ matrix.name }}-v${{ steps.get_version.outputs.version }}.zip .
           cd ..
           
-          echo "✅ Created VideoPlayer-MuseScore-${{ matrix.name }}.zip"
+          echo "✅ Created VideoPlayer-MuseScore-${{ matrix.name }}-v${{ steps.get_version.outputs.version }}.zip"
           
           # Show ZIP info
-          ls -lh VideoPlayer-MuseScore-${{ matrix.name }}.zip
+          ls -lh VideoPlayer-MuseScore-${{ matrix.name }}-v${{ steps.get_version.outputs.version }}.zip
 
       - name: Upload MuseScore package
         uses: actions/upload-artifact@v4
         with:
-          name: VideoPlayer-MuseScore-${{ matrix.name }}
-          path: VideoPlayer-MuseScore-${{ matrix.name }}.zip
+          name: VideoPlayer-MuseScore-${{ matrix.name }}-v${{ steps.get_version.outputs.version }}
+          path: VideoPlayer-MuseScore-${{ matrix.name }}-v${{ steps.get_version.outputs.version }}.zip
           retention-days: 30
 
       - name: Package Summary
         run: |
           echo "🎉 ${{ matrix.name }} MuseScore package completed!"
-          echo "📦 Download: VideoPlayer-MuseScore-${{ matrix.name }}"
+          echo "📦 Download: VideoPlayer-MuseScore-${{ matrix.name }}-v${{ steps.get_version.outputs.version }}"
           echo "📁 Extract to your MuseScore Plugins directory"
           echo "🎵 Usage: Plugins → VideoPlayer in MuseScore"

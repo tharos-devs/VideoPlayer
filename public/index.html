@@ -91,8 +91,13 @@
         <div style="border-top: 1px solid #555; padding-top: 8px;">
             <div style="margin-bottom: 5px; font-weight: bold;">Console:</div>
             <div id="consoleOutput" style="background: #222; padding: 5px; height: 80px; overflow-y: auto; font-family: monospace; font-size: 10px; color: #0f0; border: 1px solid #444; border-radius: 3px;"></div>
-            <button id="clearConsole" style="width: 48%; font-size: 9px; margin-top: 5px; padding: 4px; background: #333; color: white; border: 1px solid #555; border-radius: 3px; cursor: pointer;">Clear</button>
-            <button id="hideDebug" style="width: 48%; font-size: 9px; margin-top: 5px; padding: 4px; background: #333; color: white; border: 1px solid #555; border-radius: 3px; cursor: pointer;">Close</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
+                <div style="display: flex; gap: 5px;">
+                    <button id="clearConsole" style="font-size: 9px; padding: 4px 8px; background: #333; color: white; border: 1px solid #555; border-radius: 3px; cursor: pointer;">Clear</button>
+                    <button id="hideDebug" style="font-size: 9px; padding: 4px 8px; background: #333; color: white; border: 1px solid #555; border-radius: 3px; cursor: pointer;">Close</button>
+                </div>
+                <div id="versionInfo" style="font-size: 8px; color: #888; font-family: monospace;">VideoPlayer v1.0.0</div>
+            </div>
         </div>
     </div>
     
@@ -138,115 +143,6 @@
         
         // Resize canvas on window resize
         window.addEventListener('resize', resizeCanvas);
-        
-        // Fullscreen toggle on double-click
-        let isFullscreen = false;
-        let originalWindowSize = { width: 600, height: 450 };
-        
-        async function toggleFullscreen() {
-            try {
-                logToConsole(`Attempting to toggle fullscreen (current: ${isFullscreen})`);
-                
-                if (window.__TAURI__ && window.__TAURI__.window) {
-                    const appWindow = window.__TAURI__.window.getCurrent();
-                    
-                    if (!isFullscreen) {
-                        // Enter fullscreen
-                        await appWindow.setFullscreen(true);
-                        isFullscreen = true;
-                        logToConsole('✅ Entered fullscreen mode', 'success');
-                    } else {
-                        // Exit fullscreen
-                        await appWindow.setFullscreen(false);
-                        isFullscreen = false;
-                        logToConsole('✅ Exited fullscreen mode', 'success');
-                    }
-                    
-                    // Resize canvas after state change
-                    setTimeout(resizeCanvas, 100);
-                } else {
-                    logToConsole('❌ Tauri window API not available', 'error');
-                    // Fallback to web fullscreen API
-                    if (!isFullscreen) {
-                        if (document.documentElement.requestFullscreen) {
-                            await document.documentElement.requestFullscreen();
-                        } else if (document.documentElement.webkitRequestFullscreen) {
-                            await document.documentElement.webkitRequestFullscreen();
-                        }
-                        isFullscreen = true;
-                        logToConsole('✅ Entered web fullscreen mode', 'success');
-                    } else {
-                        if (document.exitFullscreen) {
-                            await document.exitFullscreen();
-                        } else if (document.webkitExitFullscreen) {
-                            await document.webkitExitFullscreen();
-                        }
-                        isFullscreen = false;
-                        logToConsole('✅ Exited web fullscreen mode', 'success');
-                    }
-                    setTimeout(resizeCanvas, 100);
-                }
-            } catch (error) {
-                logToConsole(`❌ Fullscreen error: ${error.message}`, 'error');
-            }
-        }
-        
-        // Double-click detection with manual timing for better reliability
-        let lastClickTime = 0;
-        let clickCount = 0;
-        
-        function handleDoubleClick(e, source) {
-            const currentTime = Date.now();
-            const timeDiff = currentTime - lastClickTime;
-            
-            logToConsole(`Click detected on ${source} (time diff: ${timeDiff}ms)`);
-            
-            if (timeDiff < 500) { // Within 500ms = double click
-                clickCount++;
-                if (clickCount === 2) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    logToConsole(`✅ Double-click confirmed on ${source} - triggering fullscreen`);
-                    toggleFullscreen();
-                    clickCount = 0;
-                }
-            } else {
-                clickCount = 1;
-            }
-            
-            lastClickTime = currentTime;
-        }
-        
-        // Double-click event listener on canvas
-        canvas.addEventListener('dblclick', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            logToConsole('Native double-click detected on canvas');
-            toggleFullscreen();
-        });
-        
-        // Manual click detection as backup
-        canvas.addEventListener('click', (e) => {
-            handleDoubleClick(e, 'canvas');
-        });
-        
-        // Also listen on document for easier double-click detection
-        document.addEventListener('dblclick', (e) => {
-            // Only trigger if not clicking on debug panel or input elements
-            if (!e.target.closest('#debugPanel') && !e.target.matches('input, button')) {
-                e.preventDefault();
-                e.stopPropagation();
-                logToConsole('Native double-click detected on document');
-                toggleFullscreen();
-            }
-        });
-        
-        // Manual click detection on document as backup
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('#debugPanel') && !e.target.matches('input, button')) {
-                handleDoubleClick(e, 'document');
-            }
-        });
         
         let pollingInterval = null;
         let isConnected = false;
@@ -608,7 +504,6 @@
         
         // Show helpful messages
         logToConsole('💡 TIP: Use the debug panel buttons (right-click) to control video');
-        logToConsole('💡 TIP: Double-click anywhere to toggle fullscreen mode');
         
         // Initialize
         status.textContent = "Connecting...";
