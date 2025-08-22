@@ -2,14 +2,11 @@ use std::sync::{Arc, Mutex};
 use std::process::{Child, Command as ProcessCommand};
 use std::fs;
 use serde::{Deserialize, Serialize};
+use tokio_tungstenite::{connect_async, tungstenite::Message};
+use futures_util::{SinkExt, StreamExt};
 
 
 
-#[derive(Debug, Serialize, Deserialize)]
-struct Command {
-    action: String,
-    time: Option<f64>,
-}
 
 type AppState = Arc<Mutex<AppData>>;
 
@@ -55,30 +52,6 @@ async fn handle_play_command() -> Result<(), String> {
 }
 
 
-#[tauri::command]
-async fn get_command(_state: tauri::State<'_, AppState>) -> Result<Option<Command>, String> {
-    // Check WebRTC server for commands
-    let client = reqwest::Client::new();
-    match client.get("http://localhost:5173/command").send().await {
-        Ok(response) => {
-            if response.status().is_success() {
-                match response.json::<Option<Command>>().await {
-                    Ok(command) => Ok(command),
-                    Err(e) => {
-                        println!("Failed to parse command response: {}", e);
-                        Ok(None)
-                    }
-                }
-            } else {
-                Ok(None)
-            }
-        }
-        Err(e) => {
-            println!("Failed to connect to command server: {}", e);
-            Ok(None)
-        }
-    }
-}
 
 #[tauri::command]
 async fn get_video_path(_state: tauri::State<'_, AppState>) -> Result<Option<String>, String> {
@@ -111,46 +84,65 @@ async fn get_video_path(_state: tauri::State<'_, AppState>) -> Result<Option<Str
     }
 }
 
-async fn monitor_endpoints() {
-    let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(50));
+async fn monitor_websocket() {
+    // Attendre que le serveur WebRTC soit prêt
+    tokio::time::sleep(tokio::time::Duration::from_millis(2000)).await;
+    
+    println!("Connecting to WebRTC WebSocket...");
     
     loop {
-        interval.tick().await;
-        
-        // Vérifier s'il y a de nouvelles commandes
-        let client = reqwest::Client::new();
-        if let Ok(response) = client.get("http://localhost:5173/command").send().await {
-            if response.status().is_success() {
-                if let Ok(command) = response.json::<Option<Command>>().await {
-                    if let Some(cmd) = command {
-                        match cmd.action.as_str() {
-                            "play" => {
-                                if let Some(time) = cmd.time {
-                                    let minutes = (time / 60.0) as i32;
-                                    let remaining_time = time % 60.0;
-                                    let whole_seconds = remaining_time as i32;
-                                    let decimals = (remaining_time - whole_seconds as f64) * 100.0;
-                                    println!("ENDPOINT: /play/{}s ({}:{:02}.{:02})", time, minutes, whole_seconds, decimals as i32);
-                                } else {
-                                    println!("ENDPOINT: /play");
+        match connect_async("ws://localhost:5173").await {
+            Ok((ws_stream, _)) => {
+                println!("WebSocket connected - real-time monitoring active");
+                let (_write, mut read) = ws_stream.split();
+                
+                while let Some(msg) = futures_util::stream::StreamExt::next(&mut read).await {
+                    match msg {
+                        Ok(Message::Text(text)) => {
+                            if let Ok(data) = serde_json::from_str::<serde_json::Value>(&text) {
+                                match data.get("type").and_then(|t| t.as_str()) {
+                                    Some("play") => {
+                                        if let Some(pos) = data.get("position").and_then(|p| p.as_f64()) {
+                                            let minutes = (pos / 60.0) as i32;
+                                            let remaining_time = pos % 60.0;
+                                            let whole_seconds = remaining_time as i32;
+                                            let decimals = (remaining_time - whole_seconds as f64) * 1000.0;
+                                            println!("WEBSOCKET: /play ({}:{:02}.{:03})", minutes, whole_seconds, decimals as i32);
+                                        } else {
+                                            println!("WEBSOCKET: /play");
+                                        }
+                                    },
+                                    Some("pause") => {
+                                        println!("WEBSOCKET: /pause (SPACEBAR)");
+                                    },
+                                    Some("seek") => {
+                                        if let Some(pos) = data.get("position").and_then(|p| p.as_f64()) {
+                                            let minutes = (pos / 60.0) as i32;
+                                            let remaining_time = pos % 60.0;
+                                            let whole_seconds = remaining_time as i32;
+                                            let decimals = (remaining_time - whole_seconds as f64) * 1000.0;
+                                            println!("WEBSOCKET: /seek ({}:{:02}.{:03})", minutes, whole_seconds, decimals as i32);
+                                        }
+                                    },
+                                    _ => {}
                                 }
-                            },
-                            "pause" => {
-                                println!("ENDPOINT: /pause (SPACEBAR)");
-                            },
-                            "seek" => {
-                                if let Some(time) = cmd.time {
-                                    let minutes = (time / 60.0) as i32;
-                                    let remaining_time = time % 60.0;
-                                    let whole_seconds = remaining_time as i32;
-                                    let decimals = (remaining_time - whole_seconds as f64) * 100.0;
-                                    println!("ENDPOINT: /seek/{}s ({}:{:02}.{:02})", time, minutes, whole_seconds, decimals as i32);
-                                }
-                            },
-                            _ => {}
-                        }
+                            }
+                        },
+                        Ok(Message::Close(_)) => {
+                            println!("WebSocket closed, reconnecting...");
+                            break;
+                        },
+                        Err(e) => {
+                            println!("WebSocket error: {}, reconnecting...", e);
+                            break;
+                        },
+                        _ => {}
                     }
                 }
+            },
+            Err(e) => {
+                println!("Failed to connect to WebSocket: {}, retrying in 1s...", e);
+                tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
             }
         }
     }
@@ -185,8 +177,8 @@ async fn main() {
     // Detect if we're in development or bundled mode
     let current_exe = std::env::current_exe().unwrap();
     let webrtc_dir = if current_exe.to_string_lossy().contains(".app/Contents/MacOS") {
-        // We're in a bundle, look in Resources/webrtc
-        current_exe.parent().unwrap().parent().unwrap().join("Resources").join("webrtc")
+        // We're in a bundle, look for webrtc next to the .app bundle
+        current_exe.parent().unwrap().parent().unwrap().parent().unwrap().parent().unwrap().join("webrtc")
     } else {
         // We're in development mode
         std::env::current_dir().unwrap().parent().unwrap().join("webrtc")
@@ -265,15 +257,14 @@ async fn main() {
     // Flag pour éviter le nettoyage multiple
     let cleanup_started = Arc::new(Mutex::new(false));
 
-    // Démarrer la surveillance des endpoints
+    // Démarrer la surveillance WebSocket
     tokio::spawn(async move {
-        monitor_endpoints().await;
+        monitor_websocket().await;
     });
 
     tauri::Builder::default()
         .manage(app_state.clone())
         .invoke_handler(tauri::generate_handler![
-            get_command,
             get_video_path,
             handle_play_command,
             keep_window_open

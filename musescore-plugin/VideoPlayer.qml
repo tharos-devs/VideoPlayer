@@ -115,10 +115,10 @@ MuseScore {
   }
 
   Window {
-    id: errorWindow
+    id: errorDialog
     title: "Video Player"
     width: 400
-    height: 300
+    height: 150
     modality: Qt.ApplicationModal
     flags: Qt.Dialog
 
@@ -152,7 +152,7 @@ MuseScore {
           Layout.preferredWidth: 100
           accentButton: true
           onClicked: {
-            quit()
+            errorDialog.close()
           }
         }
       }
@@ -209,13 +209,15 @@ MuseScore {
   Timer {
     id: shield
     interval: 100
-    running: true
+    running: false
     repeat: true
     onTriggered: {
       const videoPlayerId = Number(curScore.metaTag("videoPlayerId"))
       if (videoPlayerId && videoPlayerId !== pluginInstanceId) {
         console.log("INSTANCE", pluginInstanceId, "plugin terminated")
+        qproc.kill()
         player.stop()
+        shield.stop()
         quit()
       }
     }
@@ -224,7 +226,7 @@ MuseScore {
   // Timer d'écoute des commandes playback
   Timer {
     id: player
-    interval: 20
+    interval: 100
     running: false
     repeat: true
 
@@ -296,7 +298,7 @@ MuseScore {
     var xhr = new XMLHttpRequest()
     xhr.open("GET", url, true)
     xhr.send()
-    console.log("INSTANCE", pluginInstanceId, command, params, url)
+    console.log("INSTANCE", pluginInstanceId, command, params)
   }  
     
   function getVideoPlayer() {
@@ -338,9 +340,15 @@ MuseScore {
   onRun: {
     if (!curScore) {
       console.log("No score opened")
-      quit()
       return
     }
+
+    if (mscoreMajorVersion < 4) {
+      errorDialog.show()
+      return
+    }
+
+    shield.start()
 
     console.log("INSTANCE", pluginInstanceId, "plugin started")
     curScore.startCmd()

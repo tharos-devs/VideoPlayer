@@ -65,7 +65,7 @@ npm run sync-version
 
 - 🎵 **Synchronisation MuseScore** - Plugin natif MuseScore 4+
 - 🎬 **Lecteur vidéo** - Interface moderne avec debug panel  
-- ⚡ **Ultra-faible latence** - WebRTC + HTTP polling
+- ⚡ **Ultra-faible latence** - WebSocket temps réel + keep-alive FFmpeg
 - 📦 **Portable** - ZIP à décompresser, pas d'installateur
 - 🛠️ **FFmpeg intégré** - aucune dépendance externe
 - 🌍 **Multi-plateforme** - Windows (x64/ARM64), macOS (Intel/ARM), Linux
@@ -83,7 +83,7 @@ npm run sync-version
         └── webrtc/              # Serveur WebRTC (Node.js + FFmpeg)
 ```
 
-**Communication :** MuseScore → HTTP → Serveur WebRTC → VideoPlayer UI
+**Communication :** MuseScore → HTTP endpoints → WebRTC Server → WebSocket → VideoPlayer UI
 
 ## 💻 Plateformes Supportées
 
@@ -126,6 +126,22 @@ cp -r webrtc src-tauri/target/release/bundle/macos/VideoPlayer.app/Contents/Reso
 # Lancer l'app
 ./src-tauri/target/release/bundle/macos/VideoPlayer.app/Contents/MacOS/VideoPlayer
 ```
+
+### **Debug et logs :**
+Par défaut, les logs détaillés sont désactivés pour optimiser les performances. Pour activer les logs de debug :
+
+1. **Éditer** `webrtc/webrtc-server.js`
+2. **Changer** la ligne 12 :
+   ```javascript
+   const ENABLE_DEBUG_LOGS = true;  // au lieu de false
+   ```
+3. **Relancer** le VideoPlayer
+
+**Types de logs activés :**
+- `ENDPOINT: /play`, `/pause`, `/seek` - endpoints HTTP
+- `DEBUG: setVideo`, `Pre-starting FFmpeg` - opérations FFmpeg 
+- `PLAY: Resuming`, `SEEK: FFmpeg restarted` - état interne
+- `WEBSOCKET: /play`, `/seek` - messages WebSocket temps réel
 
 ## 📖 Documentation
 

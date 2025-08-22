@@ -8,19 +8,9 @@ const path = require('path');
 const ffmpegPath = require('ffmpeg-static');
 const ffprobePath = require('ffprobe-static').path;
 
-// Debug flag - set to false for better performance (less console.log)
-const ENABLE_DEBUG_LOGS = false;
-
 console.log('📦 Using bundled FFmpeg binaries:');
 console.log('   ffmpeg:', ffmpegPath);
 console.log('   ffprobe:', ffprobePath);
-
-// Helper function for conditional logging
-function debugLog(message) {
-    if (ENABLE_DEBUG_LOGS) {
-        console.log(message);
-    }
-}
 
 class WebRTCVideoStreamer {
     constructor() {
@@ -33,10 +23,12 @@ class WebRTCVideoStreamer {
         this.ffmpegProcess = null;
         this.streamingInterval = null;
         this.clients = new Set();
+        this.lastCommand = null;  // Pour stocker la dernière commande
         this.playStartTime = null; // Temps de démarrage de la lecture
         this.playStartPosition = 0; // Position au démarrage de la lecture
         this.videoDuration = 0; // Durée totale de la vidéo
         this.staticFrameProcess = null; // Processus FFmpeg pour frames statiques
+        this.lastPlayTime = 0; // Timestamp du dernier /play pour ignorer les /seek rapides
         this.lastStateChange = Date.now(); // Timestamp de dernière modification d'état
         this.prewarmedProcess = null; // Processus FFmpeg pre-warmed pour latence ultra-basse
         this.shouldBroadcastFrames = false; // Contrôle si on diffuse les frames (pour pause sans tuer FFmpeg)
@@ -71,15 +63,21 @@ class WebRTCVideoStreamer {
         
         // Video control endpoints
         this.app.get('/play/:timing?', (req, res) => {
+            // Marquer le timestamp du /play pour ignorer les /seek rapides
+            this.lastPlayTime = Date.now();
             
             const timing = req.params.timing ? parseFloat(req.params.timing) : null;
             
             // Si un timing est spécifié, juste l'utiliser pour le tracking
             if (timing !== null && !isNaN(timing)) {
                 this.currentPosition = timing;
-                debugLog(`ENDPOINT: /play/${timing}s`);
+                console.log(`ENDPOINT: /play/${timing}s`);
+                // Stocker la commande avec le timing pour Tauri
+                this.lastCommand = { action: "play", time: timing };
             } else {
-                debugLog(`ENDPOINT: /play`);
+                console.log(`ENDPOINT: /play`);
+                // Stocker la commande sans timing pour Tauri
+                this.lastCommand = { action: "play", time: null };
             }
             
             this.play();
@@ -87,8 +85,10 @@ class WebRTCVideoStreamer {
         });
         
         this.app.get('/pause', (req, res) => {
-            debugLog('ENDPOINT: /pause (SPACEBAR)');
+            console.log('ENDPOINT: /pause (SPACEBAR)');
             
+            // Stocker la commande pour que Tauri puisse la récupérer
+            this.lastCommand = { action: "pause", time: null };
             
             this.pause();
             res.status(200).json({ok: true});
@@ -98,7 +98,16 @@ class WebRTCVideoStreamer {
         this.app.get('/seek/:time', (req, res) => {
             const time = parseFloat(req.params.time);
             
+            // Vérifier si un /play a eu lieu dans les 200ms précédentes
+            const timeSinceLastPlay = Date.now() - this.lastPlayTime;
+            if (timeSinceLastPlay < 200) {
+                console.log(`SEEK IGNORED: ${time.toFixed(3)}s (${timeSinceLastPlay}ms after /play)`);
+                res.status(200).json({ok: true, ignored: true});
+                return;
+            }
             
+            // Stocker la commande pour que Tauri puisse la récupérer
+            this.lastCommand = { action: "seek", time: time };
             
             this.seek(time);
             res.status(200).json({ok: true});
@@ -109,6 +118,13 @@ class WebRTCVideoStreamer {
             this.handleSetVideoRequest(videoPath, res);
         });
         
+        this.app.get('/command', (req, res) => {
+            // Retourne et efface la dernière commande (comme l'ancien serveur HTML5)
+            const command = this.lastCommand;
+            this.lastCommand = null;
+            // Pas de log pour éviter la redondance avec les autres endpoints
+            res.status(200).json(command || {});
+        });
         
         this.app.get('/video-path', (req, res) => {
             res.status(200).json({path: this.currentVideo ? '/webrtc-stream' : null});
@@ -126,13 +142,13 @@ class WebRTCVideoStreamer {
         
         
         this.app.get('/clear-video', (req, res) => {
-            debugLog('ENDPOINT: /clear-video');
+            console.log('ENDPOINT: /clear-video');
             this.clearVideo();
             res.status(200).json({ok: true});
         });
         
         this.app.get('/open-player', (req, res) => {
-            debugLog('ENDPOINT: /open-player');
+            console.log('ENDPOINT: /open-player');
             // Signal à Tauri de maintenir la fenêtre ouverte
             const client = require('http');
             const postData = JSON.stringify({
@@ -164,6 +180,17 @@ class WebRTCVideoStreamer {
             res.status(200).json({ok: true, message: 'Player window keep-alive signal sent'});
         });
         
+        // State endpoint for HTTP polling mode
+        this.app.get('/state', (req, res) => {
+            res.status(200).json({
+                video: this.currentVideo,
+                position: this.currentPosition,
+                playing: this.isPlaying,
+                duration: this.videoDuration,
+                lastStateChange: this.lastStateChange,
+                hasVideo: this.currentVideo !== null
+            });
+        });
         
         // Simple ready check for QML (text response)
         this.app.get('/ready', (req, res) => {
@@ -213,7 +240,7 @@ class WebRTCVideoStreamer {
     }
     
     setVideo(videoPath) {
-        debugLog(`DEBUG: setVideo called with path: "${videoPath}"`);
+        console.log(`DEBUG: setVideo called with path: "${videoPath}"`);
         
         try {
             this.clearVideo();
@@ -222,11 +249,11 @@ class WebRTCVideoStreamer {
             this.isPlaying = false;
             this.lastStateChange = Date.now();
             
-            debugLog(`DEBUG: Video properties set, getting duration...`);
+            console.log(`DEBUG: Video properties set, getting duration...`);
             
             // Obtenir la durée de la vidéo avec FFprobe
             this.getVideoDuration().then(duration => {
-                debugLog(`DEBUG: Got video duration: ${duration}s`);
+                console.log(`DEBUG: Got video duration: ${duration}s`);
                 this.videoDuration = duration;
                 this.broadcast({
                     type: 'video_set',
@@ -237,16 +264,16 @@ class WebRTCVideoStreamer {
                 console.log(`ERROR: Failed to get video duration: ${error.message}`);
             });
             
-            debugLog(`DEBUG: Generating static frame...`);
+            console.log(`DEBUG: Generating static frame...`);
             // Générer et afficher la première frame immédiatement
             this.generateStaticFrame();
             
-            debugLog(`DEBUG: Pre-starting FFmpeg for instant play...`);
+            console.log(`DEBUG: Pre-starting FFmpeg for instant play...`);
             // Pré-démarrer FFmpeg en arrière-plan pour latence ultra-basse au premier play
             this.shouldBroadcastFrames = false; // Ne pas diffuser, juste préparer
             this.startStreaming(false); // Ne pas forcer la diffusion
             
-            debugLog(`DEBUG: setVideo completed successfully`);
+            console.log(`DEBUG: setVideo completed successfully`);
         } catch (error) {
             console.log(`ERROR: Exception in setVideo: ${error.message}`);
             throw error;
@@ -272,10 +299,10 @@ class WebRTCVideoStreamer {
         
         // Si FFmpeg est déjà en cours, reprendre la diffusion immédiatement
         if (this.ffmpegProcess && !this.ffmpegProcess.killed) {
-            debugLog('PLAY: Resuming frame broadcasting (FFmpeg already running)');
+            console.log('PLAY: Resuming frame broadcasting (FFmpeg already running)');
             this.shouldBroadcastFrames = true;
         } else {
-            debugLog('PLAY: Starting new FFmpeg process');
+            console.log('PLAY: Starting new FFmpeg process');
             this.shouldBroadcastFrames = true;
             this.startStreaming();
         }
@@ -300,7 +327,7 @@ class WebRTCVideoStreamer {
             position: this.currentPosition
         });
         
-        debugLog('PAUSE: FFmpeg kept alive, frames broadcasting stopped');
+        console.log('PAUSE: FFmpeg kept alive, frames broadcasting stopped');
         
         // On garde FFmpeg en vie, on arrête juste la diffusion
         // La dernière frame reste affichée côté client
@@ -308,7 +335,7 @@ class WebRTCVideoStreamer {
     
     
     seek(time) {
-        debugLog(`SEEK to ${time.toFixed(3)}s - isPlaying: ${this.isPlaying}`);
+        console.log(`SEEK to ${time.toFixed(3)}s - isPlaying: ${this.isPlaying}`);
 
         // SEEK ne change JAMAIS l'état isPlaying - seulement la position
         this.currentPosition = time;
@@ -324,11 +351,11 @@ class WebRTCVideoStreamer {
             
             // Redémarrer immédiatement à la nouvelle position
             this.startStreaming();
-            debugLog('SEEK: FFmpeg restarted at new position (playing)');
+            console.log('SEEK: FFmpeg restarted at new position (playing)');
         } else {
             // En pause : générer une frame statique à la nouvelle position
             this.generateStaticFrame();
-            debugLog('SEEK: Static frame generated at new position (paused)');
+            console.log('SEEK: Static frame generated at new position (paused)');
         }
         
         this.broadcast({
@@ -424,11 +451,11 @@ class WebRTCVideoStreamer {
     
     
     handleSetVideoRequest(videoPath, res) {
-        debugLog(`DEBUG: handleSetVideoRequest called with path: "${videoPath}"`);
+        console.log(`DEBUG: handleSetVideoRequest called with path: "${videoPath}"`);
         
         // Check if video is already loaded and is the same file
         if (this.currentVideo === videoPath) {
-            debugLog(`ENDPOINT: /set-video → "${videoPath}" (already loaded, ignoring)`);
+            console.log(`ENDPOINT: /set-video → "${videoPath}" (already loaded, ignoring)`);
             res.status(200).json({ok: true, status: 'already_loaded'});
             return;
         }
@@ -441,7 +468,7 @@ class WebRTCVideoStreamer {
         }
         
         // Load video only if different or no video loaded
-        debugLog(`ENDPOINT: /set-video → "${videoPath}" (loading new video)`);
+        console.log(`ENDPOINT: /set-video → "${videoPath}" (loading new video)`);
         
         try {
             this.setVideo(videoPath);
