@@ -19,15 +19,16 @@ VideoPlayer synchronise la lecture vidéo avec MuseScore :
 ### **Utilisateurs MuseScore :**
 
 1. **Télécharge** le ZIP de ta plateforme depuis [GitHub Actions](../../actions)
-2. **Décompresse** dans ton dossier Plugins MuseScore :
+2. **Décompresse** le ZIP - un dossier `VideoPlayer/` sera créé
+3. **Copie** le dossier `VideoPlayer/` dans ton dossier Plugins MuseScore :
    ```
-   Windows: Documents\MuseScore4\Plugins\VideoPlayer\
-   macOS:   ~/Documents/MuseScore4/Plugins/VideoPlayer/
-   Linux:   ~/Documents/MuseScore4/Plugins/VideoPlayer/
+   Windows: Documents\MuseScore4\Plugins\
+   macOS:   ~/Documents/MuseScore4/Plugins/
+   Linux:   ~/Documents/MuseScore4/Plugins/
    ```
-3. **Redémarre** MuseScore
-4. **Active** : Plugins → Plugin Manager → VideoPlayer ✅
-5. **Utilise** : Plugins → VideoPlayer
+4. **Redémarre** MuseScore
+5. **Active** : Plugins → Plugin Manager → VideoPlayer ✅
+6. **Utilise** : Plugins → VideoPlayer
 
 ### **Packages Disponibles :**
 - `VideoPlayer-MuseScore-Windows-x64-v1.0.0.zip`
@@ -72,12 +73,13 @@ npm run sync-version
 ## 🏗️ Architecture
 
 ```
-📦 Package MuseScore
-├── VideoPlayer.qml      # Plugin MuseScore (Qt/QML)
-├── logo.png             # Logo du plugin
-├── README.md            # Instructions utilisateur
-├── VideoPlayer.exe/.app # Lecteur vidéo (Tauri + Rust)
-└── webrtc/              # Serveur WebRTC (Node.js + FFmpeg)
+📦 VideoPlayer-MuseScore-[Platform]-v[Version].zip
+└── VideoPlayer/         # Dossier à copier dans Plugins MuseScore
+    ├── VideoPlayer.qml      # Plugin MuseScore (Qt/QML)
+    ├── logo.png             # Logo du plugin
+    ├── README.md            # Instructions utilisateur
+    ├── VideoPlayer.exe/.app # Lecteur vidéo (Tauri + Rust)
+    └── webrtc/              # Serveur WebRTC (Node.js + FFmpeg)
 ```
 
 **Communication :** MuseScore → HTTP → Serveur WebRTC → VideoPlayer UI

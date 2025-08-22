@@ -78,12 +78,13 @@ git push origin main
 ## 📦 Ce que Contient Chaque ZIP
 
 ```
-VideoPlayer-MuseScore-[Platform]-v[Version]/
-├── VideoPlayer.qml          # Plugin MuseScore
-├── logo.png                 # Logo du plugin  
-├── README.md                 # Instructions utilisateur
-├── VideoPlayer.exe/.app     # Lecteur vidéo portable
-└── webrtc/                  # Serveur WebRTC (tout inclus)
+VideoPlayer-MuseScore-[Platform]-v[Version].zip
+└── VideoPlayer/             # Dossier prêt pour Plugins MuseScore
+    ├── VideoPlayer.qml          # Plugin MuseScore
+    ├── logo.png                 # Logo du plugin  
+    ├── README.md                # Instructions utilisateur
+    ├── VideoPlayer.exe/.app     # Lecteur vidéo portable
+    └── webrtc/                  # Serveur WebRTC (tout inclus)
 ```
 
 ## ✅ Avantages du Système Actuel
@@ -100,10 +101,11 @@ VideoPlayer-MuseScore-[Platform]-v[Version]/
 
 ### **Pour tes Utilisateurs :**
 1. **Téléchargent** le ZIP de leur plateforme
-2. **Décompressent** dans `~/Documents/MuseScore4/Plugins/VideoPlayer/`
-3. **Redémarrent** MuseScore  
-4. **Activent** : Plugins → Plugin Manager → VideoPlayer ✅
-5. **Utilisent** : Plugins → VideoPlayer
+2. **Décompressent** le ZIP - un dossier `VideoPlayer/` sera créé
+3. **Copient** le dossier `VideoPlayer/` dans `~/Documents/MuseScore4/Plugins/`
+4. **Redémarrent** MuseScore  
+5. **Activent** : Plugins → Plugin Manager → VideoPlayer ✅
+6. **Utilisent** : Plugins → VideoPlayer
 
 ### **Plateformes Supportées :**
 - **Windows** : x64 + ARM64 (Surface Pro X, etc.)

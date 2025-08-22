@@ -52,29 +52,29 @@ jobs:
 
       - name: Create MuseScore package structure
         run: |
-          # Create package directory
-          New-Item -ItemType Directory -Force -Path "musescore-package"
+          # Create VideoPlayer directory for MuseScore
+          New-Item -ItemType Directory -Force -Path "VideoPlayer"
           
           # Copy plugin files
-          Copy-Item "plugins\VideoPlayer.qml" "musescore-package\"
-          Copy-Item "plugins\logo.png" "musescore-package\"
-          Copy-Item "musescore-plugin\README.md" "musescore-package\"
+          Copy-Item "plugins\VideoPlayer.qml" "VideoPlayer\"
+          Copy-Item "plugins\logo.png" "VideoPlayer\"
+          Copy-Item "musescore-plugin\README.md" "VideoPlayer\"
           
           # Copy built executable
-          Copy-Item "src-tauri\target\aarch64-pc-windows-msvc\release\VideoPlayer.exe" "musescore-package\"
+          Copy-Item "src-tauri\target\aarch64-pc-windows-msvc\release\VideoPlayer.exe" "VideoPlayer\"
           
           # Copy webrtc directory (excluding dev files)
-          Copy-Item "webrtc" "musescore-package\webrtc" -Recurse
-          Remove-Item "musescore-package\webrtc\package-lock.json" -ErrorAction SilentlyContinue
+          Copy-Item "webrtc" "VideoPlayer\webrtc" -Recurse
+          Remove-Item "VideoPlayer\webrtc\package-lock.json" -ErrorAction SilentlyContinue
           
           # List contents for verification
-          Write-Host "📦 Package contents:"
-          Get-ChildItem musescore-package -Recurse | Select-Object Name, FullName
+          Write-Host "📦 VideoPlayer directory contents:"
+          Get-ChildItem VideoPlayer -Recurse | Select-Object Name, FullName
         shell: powershell
 
       - name: Create ZIP package
         run: |
-          Compress-Archive -Path "musescore-package\*" -DestinationPath "VideoPlayer-MuseScore-Windows-ARM64.zip"
+          Compress-Archive -Path "VideoPlayer" -DestinationPath "VideoPlayer-MuseScore-Windows-ARM64.zip"
           Write-Host "✅ Created VideoPlayer-MuseScore-Windows-ARM64.zip"
           
           # Show ZIP info

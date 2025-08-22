@@ -41,19 +41,21 @@
 
 ### **Contenu de chaque ZIP :**
 ```
-VideoPlayer-MuseScore-[Platform]-v[Version]/
-├── VideoPlayer.qml          # Plugin MuseScore
-├── logo.png                 # Logo du plugin  
-├── README.md                 # Instructions d'installation
-├── VideoPlayer.exe/.app     # Exécutable portable
-└── webrtc/                  # Serveur WebRTC intégré
+VideoPlayer-MuseScore-[Platform]-v[Version].zip
+└── VideoPlayer/             # Dossier prêt pour Plugins MuseScore
+    ├── VideoPlayer.qml          # Plugin MuseScore
+    ├── logo.png                 # Logo du plugin  
+    ├── README.md                # Instructions d'installation
+    ├── VideoPlayer.exe/.app     # Exécutable portable
+    └── webrtc/                  # Serveur WebRTC intégré
 ```
 
 ## 🎵 Distribution MuseScore
 
 ### **Pour les Utilisateurs :**
 1. **Télécharge** le ZIP de ta plateforme depuis GitHub Actions → Artifacts
-2. **Décompresse** dans `~/Documents/MuseScore4/Plugins/VideoPlayer/`
+2. **Décompresse** le ZIP - un dossier `VideoPlayer/` sera créé
+3. **Copie** le dossier `VideoPlayer/` dans `~/Documents/MuseScore4/Plugins/`
 3. **Redémarre** MuseScore
 4. **Active** le plugin : Plugins → Plugin Manager → VideoPlayer ✅
 5. **Utilise** : Plugins → VideoPlayer
