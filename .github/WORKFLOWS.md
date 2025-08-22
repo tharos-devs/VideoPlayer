@@ -15,6 +15,8 @@
 - **`package-macos-arm64.yml`** : macOS Apple Silicon uniquement
 - **`package-linux-x64.yml`** : Linux 64-bit uniquement
 
+**🗑️ Workflows Supprimés :** Les anciens workflows générant des installateurs (.msi/.dmg/AppImage) ont été supprimés. Focus sur les packages MuseScore portables uniquement.
+
 ## 🎯 Comment Générer les Packages
 
 ### **Option 1 : Tous les Packages (Recommandé)**
@@ -42,23 +44,24 @@
 ### **Contenu de chaque ZIP :**
 ```
 VideoPlayer-MuseScore-[Platform]-v[Version].zip
-└── VideoPlayer/             # Dossier prêt pour Plugins MuseScore
-    ├── VideoPlayer.qml          # Plugin MuseScore
-    ├── logo.png                 # Logo du plugin  
-    ├── README.md                # Instructions d'installation
-    ├── VideoPlayer.exe/.app     # Exécutable portable
-    └── webrtc/                  # Serveur WebRTC intégré
+└── VideoPlayer-MuseScore-[Platform]-v[Version]/  # Dossier décompressé
+    └── VideoPlayer/                              # Dossier prêt pour Plugins MuseScore
+        ├── VideoPlayer.qml          # Plugin MuseScore
+        ├── logo.png                 # Logo du plugin  
+        ├── README.md                # Instructions d'installation
+        ├── VideoPlayer.exe/.app     # Exécutable portable
+        └── webrtc/                  # Serveur WebRTC intégré
 ```
 
 ## 🎵 Distribution MuseScore
 
 ### **Pour les Utilisateurs :**
 1. **Télécharge** le ZIP de ta plateforme depuis GitHub Actions → Artifacts
-2. **Décompresse** le ZIP - un dossier `VideoPlayer/` sera créé
-3. **Copie** le dossier `VideoPlayer/` dans `~/Documents/MuseScore4/Plugins/`
-3. **Redémarre** MuseScore
-4. **Active** le plugin : Plugins → Plugin Manager → VideoPlayer ✅
-5. **Utilise** : Plugins → VideoPlayer
+2. **Décompresse** le ZIP - un dossier `VideoPlayer-MuseScore-[Platform]-v[Version]/` sera créé
+3. **Va dans** le dossier décompressé et **copie** le dossier `VideoPlayer/` dans `~/Documents/MuseScore4/Plugins/`
+4. **Redémarre** MuseScore
+5. **Active** le plugin : Plugins → Plugin Manager → VideoPlayer ✅
+6. **Utilise** : Plugins → VideoPlayer
 
 ### **Plateformes Supportées :**
 - **Windows** : x64 (Intel/AMD) + ARM64

@@ -74,7 +74,12 @@ jobs:
 
       - name: Create ZIP package
         run: |
-          Compress-Archive -Path "VideoPlayer" -DestinationPath "VideoPlayer-MuseScore-Windows-ARM64.zip"
+          # Créer dossier parent avec le nom du ZIP
+          $packageName = "VideoPlayer-MuseScore-Windows-ARM64"
+          New-Item -ItemType Directory -Force -Path $packageName
+          Move-Item "VideoPlayer" "$packageName/"
+          
+          Compress-Archive -Path $packageName -DestinationPath "$packageName.zip"
           Write-Host "✅ Created VideoPlayer-MuseScore-Windows-ARM64.zip"
           
           # Show ZIP info

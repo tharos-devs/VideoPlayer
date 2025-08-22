@@ -19,8 +19,8 @@ VideoPlayer synchronise la lecture vidéo avec MuseScore :
 ### **Utilisateurs MuseScore :**
 
 1. **Télécharge** le ZIP de ta plateforme depuis [GitHub Actions](../../actions)
-2. **Décompresse** le ZIP - un dossier `VideoPlayer/` sera créé
-3. **Copie** le dossier `VideoPlayer/` dans ton dossier Plugins MuseScore :
+2. **Décompresse** le ZIP - un dossier `VideoPlayer-MuseScore-[Platform]-v[Version]/` sera créé
+3. **Va dans** le dossier décompressé et **copie** le dossier `VideoPlayer/` dans ton dossier Plugins MuseScore :
    ```
    Windows: Documents\MuseScore4\Plugins\
    macOS:   ~/Documents/MuseScore4/Plugins/
@@ -74,12 +74,13 @@ npm run sync-version
 
 ```
 📦 VideoPlayer-MuseScore-[Platform]-v[Version].zip
-└── VideoPlayer/         # Dossier à copier dans Plugins MuseScore
-    ├── VideoPlayer.qml      # Plugin MuseScore (Qt/QML)
-    ├── logo.png             # Logo du plugin
-    ├── README.md            # Instructions utilisateur
-    ├── VideoPlayer.exe/.app # Lecteur vidéo (Tauri + Rust)
-    └── webrtc/              # Serveur WebRTC (Node.js + FFmpeg)
+└── VideoPlayer-MuseScore-[Platform]-v[Version]/  # Dossier décompressé
+    └── VideoPlayer/                              # Dossier à copier dans Plugins MuseScore
+        ├── VideoPlayer.qml      # Plugin MuseScore (Qt/QML)
+        ├── logo.png             # Logo du plugin
+        ├── README.md            # Instructions utilisateur
+        ├── VideoPlayer.exe/.app # Lecteur vidéo (Tauri + Rust)
+        └── webrtc/              # Serveur WebRTC (Node.js + FFmpeg)
 ```
 
 **Communication :** MuseScore → HTTP → Serveur WebRTC → VideoPlayer UI

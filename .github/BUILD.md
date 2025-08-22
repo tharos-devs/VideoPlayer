@@ -63,15 +63,16 @@ VideoPlayer-MuseScore-Linux-x64-v1.0.0.zip
 ### **Contenu de chaque ZIP :**
 ```
 VideoPlayer-MuseScore-[Platform]-v[Version].zip
-└── VideoPlayer/             # Dossier prêt pour Plugins MuseScore
-    ├── VideoPlayer.qml          # Plugin MuseScore
-    ├── logo.png                 # Logo du plugin
-    ├── README.md                # Instructions installation
-    ├── VideoPlayer.exe/.app     # Lecteur vidéo portable
-    └── webrtc/                  # Serveur WebRTC + FFmpeg
-        ├── webrtc-server.js     # Serveur principal
-        ├── package.json         # Dépendances
-        └── node_modules/        # FFmpeg statique inclus
+└── VideoPlayer-MuseScore-[Platform]-v[Version]/  # Dossier décompressé
+    └── VideoPlayer/                              # Dossier prêt pour Plugins MuseScore
+        ├── VideoPlayer.qml          # Plugin MuseScore
+        ├── logo.png                 # Logo du plugin
+        ├── README.md                # Instructions installation
+        ├── VideoPlayer.exe/.app     # Lecteur vidéo portable
+        └── webrtc/                  # Serveur WebRTC + FFmpeg
+            ├── webrtc-server.js     # Serveur principal
+            ├── package.json         # Dépendances
+            └── node_modules/        # FFmpeg statique inclus
 ```
 
 ## 🔄 Gestion des Versions

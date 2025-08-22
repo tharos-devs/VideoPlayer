@@ -71,7 +71,12 @@ jobs:
 
       - name: Create ZIP package
         run: |
-          zip -r VideoPlayer-MuseScore-macOS-x64.zip VideoPlayer/
+          # Créer dossier parent avec le nom du ZIP
+          PACKAGE_NAME="VideoPlayer-MuseScore-macOS-x64"
+          mkdir -p "$PACKAGE_NAME"
+          mv VideoPlayer "$PACKAGE_NAME/"
+          
+          zip -r "$PACKAGE_NAME.zip" "$PACKAGE_NAME/"
           
           echo "✅ Created VideoPlayer-MuseScore-macOS-x64.zip"
           

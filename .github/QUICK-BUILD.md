@@ -12,6 +12,8 @@
 - **`📦 Package macOS x64 MuseScore`** - Intel Macs (~2-3 min)
 - **`📦 Package Linux x64 MuseScore`** - Linux 64-bit (~2-3 min)
 
+**Note :** Les anciens workflows qui généraient des installateurs (.msi/.dmg) ont été supprimés. Seuls les workflows créant des packages MuseScore portables sont conservés.
+
 ## 🚀 Comment Générer un Package Rapidement
 
 ### **Pour Toutes les Plateformes (Recommandé) :**
@@ -48,6 +50,8 @@ Actions (TOUS MANUELS - AUCUN BUILD AUTOMATIQUE)
 ├── 📦 Package macOS ARM64 MuseScore          ← Test Apple Silicon
 ├── 📦 Package macOS x64 MuseScore            ← Test Intel Macs  
 └── 📦 Package Linux x64 MuseScore            ← Test Linux
+
+Note: Workflows d'installateurs (.msi/.dmg) supprimés - focus sur packages MuseScore uniquement
 ```
 
 ## 🎯 Utilisation Pratique
@@ -79,12 +83,13 @@ git push origin main
 
 ```
 VideoPlayer-MuseScore-[Platform]-v[Version].zip
-└── VideoPlayer/             # Dossier prêt pour Plugins MuseScore
-    ├── VideoPlayer.qml          # Plugin MuseScore
-    ├── logo.png                 # Logo du plugin  
-    ├── README.md                # Instructions utilisateur
-    ├── VideoPlayer.exe/.app     # Lecteur vidéo portable
-    └── webrtc/                  # Serveur WebRTC (tout inclus)
+└── VideoPlayer-MuseScore-[Platform]-v[Version]/  # Dossier décompressé
+    └── VideoPlayer/                              # Dossier prêt pour Plugins MuseScore
+        ├── VideoPlayer.qml          # Plugin MuseScore
+        ├── logo.png                 # Logo du plugin  
+        ├── README.md                # Instructions utilisateur
+        ├── VideoPlayer.exe/.app     # Lecteur vidéo portable
+        └── webrtc/                  # Serveur WebRTC (tout inclus)
 ```
 
 ## ✅ Avantages du Système Actuel
@@ -101,8 +106,8 @@ VideoPlayer-MuseScore-[Platform]-v[Version].zip
 
 ### **Pour tes Utilisateurs :**
 1. **Téléchargent** le ZIP de leur plateforme
-2. **Décompressent** le ZIP - un dossier `VideoPlayer/` sera créé
-3. **Copient** le dossier `VideoPlayer/` dans `~/Documents/MuseScore4/Plugins/`
+2. **Décompressent** le ZIP - un dossier `VideoPlayer-MuseScore-[Platform]-v[Version]/` sera créé
+3. **Vont dans** le dossier décompressé et **copient** le dossier `VideoPlayer/` dans `~/Documents/MuseScore4/Plugins/`
 4. **Redémarrent** MuseScore  
 5. **Activent** : Plugins → Plugin Manager → VideoPlayer ✅
 6. **Utilisent** : Plugins → VideoPlayer
