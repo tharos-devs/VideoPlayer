@@ -79,16 +79,14 @@ MuseScore {
   Timer {
     id: loader
     interval: 500
-    running: true  // Démarre automatiquement et interroge en boucle
+    running: false  // Ne démarre que quand on lance le processus VideoPlayer
     repeat: true
     onTriggered: {
       sendCommand('player-ready', '', function(error, result) {
         if (!error && result) {
           try {
             var response = JSON.parse(result);
-            console.log("INSTANCE", pluginInstanceId, 'player-ready response:', JSON.stringify(response));
             if (response.ready === true) {
-              console.log("INSTANCE", pluginInstanceId, 'Player is ready! Starting sync...');
               videoSource = curScore.metaTag("videoSource");
               if (videoSource && videoSource !== "") {
                 showMain = true
@@ -96,19 +94,12 @@ MuseScore {
                 fileDialog.visible = true
               }
               loader.stop()
-            } else {
-              console.log("INSTANCE", pluginInstanceId, 'Player not ready yet, ready =', response.ready);
             }
           } catch(e) {
-            console.log("INSTANCE", pluginInstanceId, 'Invalid JSON response from player-ready:', e.toString());
-            console.log("INSTANCE", pluginInstanceId, 'Raw result:', result);
+            console.log("INSTANCE", pluginInstanceId, 'Invalid JSON response from player-ready');
           }
         } else {
-          if (error) {
-            console.log("INSTANCE", pluginInstanceId, 'Error calling player-ready:', error.toString());
-          } else {
-            console.log("INSTANCE", pluginInstanceId, 'No result from player-ready');
-          }
+          console.log("INSTANCE", pluginInstanceId, 'Waiting for player ready...');
         }
       })
     }
@@ -384,5 +375,8 @@ MuseScore {
 
     const videoPlayer = getVideoPlayer()
     qproc.startWithArgs(videoPlayer, [])
+    
+    // Démarrer la synchronisation maintenant que le processus VideoPlayer est lancé
+    loader.start()
   }
 }

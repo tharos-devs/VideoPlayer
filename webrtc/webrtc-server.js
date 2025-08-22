@@ -150,6 +150,7 @@ class WebRTCVideoStreamer {
         });
         
         this.app.get('/player-ready', (req, res) => {
+            console.log(`ENDPOINT: /player-ready → ready: ${this.isReady}`);
             res.status(200).json({ ready: this.isReady });
         });
         
