@@ -64,6 +64,7 @@ MuseScore {
     type: FileDialog.Load
     visible: false
     onAccepted: {
+      console.log("INSTANCE", pluginInstanceId, "Selected file:", filePath)
       curScore.startCmd()
       curScore.setMetaTag("videoSource", filePath)
       curScore.endCmd()
@@ -275,6 +276,8 @@ MuseScore {
     var url = "http://localhost:5173"
     switch (command) {
       case 'set-video':
+        console.log("INSTANCE", pluginInstanceId, "Raw params:", JSON.stringify(params))
+        console.log("INSTANCE", pluginInstanceId, "Encoded params:", encodeURIComponent(params))
         url = url + "/set-video?path=" + encodeURIComponent(params)
         break
       case 'pause':
@@ -288,7 +291,7 @@ MuseScore {
     var xhr = new XMLHttpRequest()
     xhr.open("GET", url, true)
     xhr.send()
-    console.log("INSTANCE", pluginInstanceId, command, params, url)
+    console.log("INSTANCE", pluginInstanceId, command, "Final URL:", url)
   }
 
   function getVideoPlayer() {

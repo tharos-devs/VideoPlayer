@@ -29,6 +29,7 @@ class WebRTCVideoStreamer {
         this.videoDuration = 0; // Durée totale de la vidéo
         this.staticFrameProcess = null; // Processus FFmpeg pour frames statiques
         this.lastPlayTime = 0; // Timestamp du dernier /play pour ignorer les /seek rapides
+        this.lastStateChange = Date.now(); // Timestamp de dernière modification d'état
         
         this.setupServer();
         this.setupWebSocket();
@@ -151,7 +152,9 @@ class WebRTCVideoStreamer {
                 video: this.currentVideo,
                 position: this.currentPosition,
                 playing: this.isPlaying,
-                duration: this.videoDuration
+                duration: this.videoDuration,
+                lastStateChange: this.lastStateChange,
+                hasVideo: this.currentVideo !== null
             });
         });
         
@@ -202,6 +205,7 @@ class WebRTCVideoStreamer {
         this.currentVideo = videoPath;
         this.currentPosition = 0;
         this.isPlaying = false;
+        this.lastStateChange = Date.now(); // Marquer le changement d'état
         
         
         // Obtenir la durée de la vidéo avec FFprobe
@@ -230,6 +234,7 @@ class WebRTCVideoStreamer {
         this.isPlaying = true;
         this.playStartTime = Date.now();
         this.playStartPosition = this.currentPosition;
+        this.lastStateChange = Date.now(); // Marquer le changement d'état
         
         this.broadcast({
             type: 'play',
@@ -248,6 +253,7 @@ class WebRTCVideoStreamer {
         
         this.isPlaying = false;
         this.playStartTime = null;
+        this.lastStateChange = Date.now(); // Marquer le changement d'état
         
         this.broadcast({
             type: 'pause',
@@ -266,6 +272,7 @@ class WebRTCVideoStreamer {
 
         // SEEK ne change JAMAIS l'état isPlaying - seulement la position
         this.currentPosition = time;
+        this.lastStateChange = Date.now(); // Marquer le changement d'état
         
         // Si vidéo était en cours de lecture, arrêter temporairement pour le seek
         if (this.isPlaying) {
