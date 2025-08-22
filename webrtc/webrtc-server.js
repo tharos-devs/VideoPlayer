@@ -80,7 +80,7 @@ class WebRTCVideoStreamer {
             }
             
             this.play();
-            res.json({ok: true});
+            res.status(200).json({ok: true});
         });
         
         this.app.get('/pause', (req, res) => {
@@ -90,7 +90,7 @@ class WebRTCVideoStreamer {
             this.lastCommand = { action: "pause", time: null };
             
             this.pause();
-            res.json({ok: true});
+            res.status(200).json({ok: true});
         });
         
         
@@ -101,7 +101,7 @@ class WebRTCVideoStreamer {
             const timeSinceLastPlay = Date.now() - this.lastPlayTime;
             if (timeSinceLastPlay < 200) {
                 console.log(`SEEK IGNORED: ${time}s (${timeSinceLastPlay}ms after /play)`);
-                res.json({ok: true, ignored: true});
+                res.status(200).json({ok: true, ignored: true});
                 return;
             }
             
@@ -109,7 +109,7 @@ class WebRTCVideoStreamer {
             this.lastCommand = { action: "seek", time: time };
             
             this.seek(time);
-            res.json({ok: true});
+            res.status(200).json({ok: true});
         });
         
         this.app.get('/set-video', (req, res) => {
@@ -130,15 +130,15 @@ class WebRTCVideoStreamer {
             const command = this.lastCommand;
             this.lastCommand = null;
             // Pas de log pour éviter la redondance avec les autres endpoints
-            res.json(command || {});
+            res.status(200).json(command || {});
         });
         
         this.app.get('/video-path', (req, res) => {
-            res.json({path: this.currentVideo ? '/webrtc-stream' : null});
+            res.status(200).json({path: this.currentVideo ? '/webrtc-stream' : null});
         });
         
         this.app.get('/status', (req, res) => {
-            res.json({
+            res.status(200).json({
                 playing: this.isPlaying,
                 position: this.currentPosition,
                 video: this.currentVideo,
@@ -146,16 +146,20 @@ class WebRTCVideoStreamer {
             });
         });
         
+        this.app.get('/player-ready', (req, res) => {
+            res.status(200).json({ ready: this.isReady });
+        });
+        
         
         this.app.get('/clear-video', (req, res) => {
             console.log('ENDPOINT: /clear-video');
             this.clearVideo();
-            res.json({ok: true});
+            res.status(200).json({ok: true});
         });
         
         // State endpoint for HTTP polling mode
         this.app.get('/state', (req, res) => {
-            res.json({
+            res.status(200).json({
                 video: this.currentVideo,
                 position: this.currentPosition,
                 playing: this.isPlaying,
@@ -370,14 +374,14 @@ class WebRTCVideoStreamer {
         // Check if video is already loaded and is the same file
         if (this.currentVideo === videoPath) {
             console.log(`ENDPOINT: /set-video → "${videoPath}" (already loaded, ignoring)`);
-            res.json({ok: true, status: 'already_loaded'});
+            res.status(200).json({ok: true, status: 'already_loaded'});
             return;
         }
         
         // Load video only if different or no video loaded
         console.log(`ENDPOINT: /set-video → "${videoPath}" (loading new video)`);
         this.setVideo(videoPath);
-        res.json({ok: true, status: 'loaded'});
+        res.status(200).json({ok: true, status: 'loaded'});
     }
     
     processPendingSetVideoRequests() {
