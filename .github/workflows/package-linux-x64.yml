@@ -1,0 +1,90 @@
+name: 📦 Package Linux x64 MuseScore
+
+on:
+  workflow_dispatch: # Manual trigger only
+
+permissions:
+  contents: write
+
+jobs:
+  package-linux-x64:
+    runs-on: ubuntu-20.04
+    name: Package Linux x64 for MuseScore
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-gnu
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Install app dependencies
+        run: npm install
+
+      - name: Build Linux x64 application
+        run: npm run tauri:build -- --target x86_64-unknown-linux-gnu
+
+      - name: Create MuseScore package structure
+        run: |
+          # Create package directory
+          mkdir -p musescore-package
+          
+          # Copy plugin files
+          cp plugins/VideoPlayer.qml musescore-package/
+          cp plugins/logo.png musescore-package/
+          cp musescore-plugin/README.md musescore-package/
+          
+          # Copy built executable
+          cp "src-tauri/target/x86_64-unknown-linux-gnu/release/VideoPlayer" musescore-package/
+          
+          # Copy webrtc directory
+          cp -r webrtc musescore-package/
+          
+          # Make executable
+          chmod +x musescore-package/VideoPlayer
+          
+          # List contents for verification
+          echo "📦 Package contents:"
+          find musescore-package -type f | head -20
+
+      - name: Create ZIP package
+        run: |
+          cd musescore-package
+          zip -r ../VideoPlayer-MuseScore-Linux-x64.zip .
+          cd ..
+          
+          echo "✅ Created VideoPlayer-MuseScore-Linux-x64.zip"
+          
+          # Show ZIP info
+          ls -lh VideoPlayer-MuseScore-Linux-x64.zip
+
+      - name: Upload MuseScore package
+        uses: actions/upload-artifact@v4
+        with:
+          name: VideoPlayer-MuseScore-Linux-x64
+          path: VideoPlayer-MuseScore-Linux-x64.zip
+          retention-days: 30
+
+      - name: Package Summary
+        run: |
+          echo "🎉 Linux x64 MuseScore package completed!"
+          echo "📦 Download: VideoPlayer-MuseScore-Linux-x64"
+          echo "💻 Compatible: Most Linux distributions (x64)"
+          echo "📁 Extract to: ~/Documents/MuseScore3/Plugins/VideoPlayer/"

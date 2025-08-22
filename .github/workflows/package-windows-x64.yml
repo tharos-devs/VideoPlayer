@@ -1,0 +1,97 @@
+name: 📦 Package Windows x64 MuseScore
+
+on:
+  workflow_dispatch: # Manual trigger only
+
+permissions:
+  contents: write
+
+jobs:
+  package-windows-x64:
+    runs-on: windows-latest
+    name: Package Windows x64 for MuseScore
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install app dependencies
+        run: npm install
+
+      - name: Create Windows app icons
+        run: |
+          if (Test-Path "src-tauri/icons/icon.png") {
+            Write-Host "✅ Found icon.png"
+            try {
+              magick src-tauri/icons/icon.png -resize 256x256 src-tauri/icons/icon.ico
+              Write-Host "✅ Created icon.ico with ImageMagick"
+            } catch {
+              Copy-Item src-tauri/icons/icon.png src-tauri/icons/icon.ico
+              Write-Host "⚠️ ImageMagick failed, copied PNG as ICO"
+            }
+          }
+        shell: powershell
+
+      - name: Build Windows application
+        run: npm run tauri:build -- --target x86_64-pc-windows-msvc
+
+      - name: Create MuseScore package structure
+        run: |
+          # Create package directory
+          New-Item -ItemType Directory -Force -Path "musescore-package"
+          
+          # Copy plugin files
+          Copy-Item "plugins\VideoPlayer.qml" "musescore-package\"
+          Copy-Item "plugins\logo.png" "musescore-package\"
+          Copy-Item "musescore-plugin\README.md" "musescore-package\"
+          
+          # Copy built executable
+          Copy-Item "src-tauri\target\x86_64-pc-windows-msvc\release\VideoPlayer.exe" "musescore-package\"
+          
+          # Copy webrtc directory
+          Copy-Item "webrtc" "musescore-package\webrtc" -Recurse
+          
+          # List contents for verification
+          Write-Host "📦 Package contents:"
+          Get-ChildItem "musescore-package" -Recurse | Select-Object Name, FullName
+        shell: powershell
+
+      - name: Create ZIP package
+        run: |
+          Compress-Archive -Path "musescore-package\*" -DestinationPath "VideoPlayer-MuseScore-Windows-x64.zip"
+          Write-Host "✅ Created VideoPlayer-MuseScore-Windows-x64.zip"
+          
+          # Show ZIP info
+          $zipInfo = Get-Item "VideoPlayer-MuseScore-Windows-x64.zip"
+          Write-Host "📊 ZIP size: $($zipInfo.Length / 1MB) MB"
+        shell: powershell
+
+      - name: Upload MuseScore package
+        uses: actions/upload-artifact@v4
+        with:
+          name: VideoPlayer-MuseScore-Windows-x64
+          path: VideoPlayer-MuseScore-Windows-x64.zip
+          retention-days: 30
+
+      - name: Package Summary
+        run: |
+          Write-Host "🎉 Windows x64 MuseScore package completed!"
+          Write-Host "📦 Download: VideoPlayer-MuseScore-Windows-x64"
+          Write-Host "📁 Extract to: MuseScore3/Plugins/VideoPlayer/"
+          Write-Host "🎵 Usage: Plugins → VideoPlayer in MuseScore"
+        shell: powershell

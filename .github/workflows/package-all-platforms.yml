@@ -1,0 +1,203 @@
+name: 📦 Package All Platforms for MuseScore
+
+on:
+  workflow_dispatch: # Manual trigger only
+
+permissions:
+  contents: write
+
+jobs:
+  package-all:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            name: Windows-x64
+            executable: VideoPlayer.exe
+            
+          - os: windows-latest
+            target: aarch64-pc-windows-msvc
+            name: Windows-ARM64
+            executable: VideoPlayer.exe
+            
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            name: macOS-x64
+            executable: VideoPlayer.app
+            
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            name: macOS-ARM64
+            executable: VideoPlayer.app
+            
+          - os: ubuntu-20.04
+            target: x86_64-unknown-linux-gnu
+            name: Linux-x64
+            executable: VideoPlayer
+
+    runs-on: ${{ matrix.os }}
+    name: Package ${{ matrix.name }} for MuseScore
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Install app dependencies
+        run: npm install
+
+      - name: Create app icons (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          if [ -f "src-tauri/icons/icon.png" ]; then
+            echo "✅ Found icon.png"
+            if sips -s format icns src-tauri/icons/icon.png --out src-tauri/icons/icon.icns 2>/dev/null; then
+              echo "✅ Created icon.icns with sips"
+            else
+              echo "⚠️ sips failed, copying PNG as ICNS"
+              cp src-tauri/icons/icon.png src-tauri/icons/icon.icns
+            fi
+          fi
+
+      - name: Create app icons (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          if (Test-Path "src-tauri/icons/icon.png") {
+            Write-Host "✅ Found icon.png"
+            try {
+              magick src-tauri/icons/icon.png -resize 256x256 src-tauri/icons/icon.ico
+              Write-Host "✅ Created icon.ico with ImageMagick"
+            } catch {
+              Copy-Item src-tauri/icons/icon.png src-tauri/icons/icon.ico
+              Write-Host "⚠️ ImageMagick failed, copied PNG as ICO"
+            }
+          }
+        shell: powershell
+
+      - name: Build application
+        run: npm run tauri:build -- --target ${{ matrix.target }}
+
+      - name: Create MuseScore package structure (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          # Create package directory
+          New-Item -ItemType Directory -Force -Path "musescore-package"
+          
+          # Copy plugin files
+          Copy-Item "plugins\VideoPlayer.qml" "musescore-package\"
+          Copy-Item "plugins\logo.png" "musescore-package\"
+          Copy-Item "musescore-plugin\README.md" "musescore-package\"
+          
+          # Copy built executable
+          Copy-Item "src-tauri\target\${{ matrix.target }}\release\${{ matrix.executable }}" "musescore-package\"
+          
+          # Copy webrtc directory
+          Copy-Item "webrtc" "musescore-package\webrtc" -Recurse
+          
+          # List contents for verification
+          Write-Host "📦 Package contents:"
+          Get-ChildItem "musescore-package" -Recurse | Select-Object Name, FullName
+        shell: powershell
+
+      - name: Create MuseScore package structure (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          # Create package directory
+          mkdir -p musescore-package
+          
+          # Copy plugin files
+          cp plugins/VideoPlayer.qml musescore-package/
+          cp plugins/logo.png musescore-package/
+          cp musescore-plugin/README.md musescore-package/
+          
+          # Copy built application bundle
+          cp -r "src-tauri/target/${{ matrix.target }}/release/bundle/macos/${{ matrix.executable }}" musescore-package/
+          
+          # Copy webrtc directory
+          cp -r webrtc musescore-package/
+          
+          # List contents for verification
+          echo "📦 Package contents:"
+          find musescore-package -type f | head -20
+
+      - name: Create MuseScore package structure (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          # Create package directory
+          mkdir -p musescore-package
+          
+          # Copy plugin files
+          cp plugins/VideoPlayer.qml musescore-package/
+          cp plugins/logo.png musescore-package/
+          cp musescore-plugin/README.md musescore-package/
+          
+          # Copy built executable
+          cp "src-tauri/target/${{ matrix.target }}/release/${{ matrix.executable }}" musescore-package/
+          
+          # Copy webrtc directory
+          cp -r webrtc musescore-package/
+          
+          # Make executable
+          chmod +x musescore-package/${{ matrix.executable }}
+          
+          # List contents for verification
+          echo "📦 Package contents:"
+          find musescore-package -type f | head -20
+
+      - name: Create ZIP package (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          Compress-Archive -Path "musescore-package\*" -DestinationPath "VideoPlayer-MuseScore-${{ matrix.name }}.zip"
+          Write-Host "✅ Created VideoPlayer-MuseScore-${{ matrix.name }}.zip"
+          
+          # Show ZIP info
+          $zipInfo = Get-Item "VideoPlayer-MuseScore-${{ matrix.name }}.zip"
+          Write-Host "📊 ZIP size: $($zipInfo.Length / 1MB) MB"
+        shell: powershell
+
+      - name: Create ZIP package (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          cd musescore-package
+          zip -r ../VideoPlayer-MuseScore-${{ matrix.name }}.zip .
+          cd ..
+          
+          echo "✅ Created VideoPlayer-MuseScore-${{ matrix.name }}.zip"
+          
+          # Show ZIP info
+          ls -lh VideoPlayer-MuseScore-${{ matrix.name }}.zip
+
+      - name: Upload MuseScore package
+        uses: actions/upload-artifact@v4
+        with:
+          name: VideoPlayer-MuseScore-${{ matrix.name }}
+          path: VideoPlayer-MuseScore-${{ matrix.name }}.zip
+          retention-days: 30
+
+      - name: Package Summary
+        run: |
+          echo "🎉 ${{ matrix.name }} MuseScore package completed!"
+          echo "📦 Download: VideoPlayer-MuseScore-${{ matrix.name }}"
+          echo "📁 Extract to your MuseScore Plugins directory"
+          echo "🎵 Usage: Plugins → VideoPlayer in MuseScore"

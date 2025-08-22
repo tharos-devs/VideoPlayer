@@ -1,0 +1,94 @@
+name: 📦 Package macOS x64 MuseScore
+
+on:
+  workflow_dispatch: # Manual trigger only
+
+permissions:
+  contents: write
+
+jobs:
+  package-macos-x64:
+    runs-on: macos-latest
+    name: Package macOS x64 for MuseScore
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-apple-darwin
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install app dependencies
+        run: npm install
+
+      - name: Create macOS app icons
+        run: |
+          if [ -f "src-tauri/icons/icon.png" ]; then
+            echo "✅ Found icon.png"
+            if sips -s format icns src-tauri/icons/icon.png --out src-tauri/icons/icon.icns 2>/dev/null; then
+              echo "✅ Created icon.icns with sips"
+            else
+              echo "⚠️ sips failed, copying PNG as ICNS"
+              cp src-tauri/icons/icon.png src-tauri/icons/icon.icns
+            fi
+          fi
+
+      - name: Build macOS x64 application
+        run: npm run tauri:build -- --target x86_64-apple-darwin
+
+      - name: Create MuseScore package structure
+        run: |
+          # Create package directory
+          mkdir -p musescore-package
+          
+          # Copy plugin files
+          cp plugins/VideoPlayer.qml musescore-package/
+          cp plugins/logo.png musescore-package/
+          cp musescore-plugin/README.md musescore-package/
+          
+          # Copy built application bundle
+          cp -r "src-tauri/target/x86_64-apple-darwin/release/bundle/macos/VideoPlayer.app" musescore-package/
+          
+          # Copy webrtc directory
+          cp -r webrtc musescore-package/
+          
+          # List contents for verification
+          echo "📦 Package contents:"
+          find musescore-package -type f | head -20
+
+      - name: Create ZIP package
+        run: |
+          cd musescore-package
+          zip -r ../VideoPlayer-MuseScore-macOS-x64.zip .
+          cd ..
+          
+          echo "✅ Created VideoPlayer-MuseScore-macOS-x64.zip"
+          
+          # Show ZIP info
+          ls -lh VideoPlayer-MuseScore-macOS-x64.zip
+
+      - name: Upload MuseScore package
+        uses: actions/upload-artifact@v4
+        with:
+          name: VideoPlayer-MuseScore-macOS-x64
+          path: VideoPlayer-MuseScore-macOS-x64.zip
+          retention-days: 30
+
+      - name: Package Summary
+        run: |
+          echo "🎉 macOS x64 MuseScore package completed!"
+          echo "📦 Download: VideoPlayer-MuseScore-macOS-x64"
+          echo "💻 Compatible: Intel Macs"
+          echo "📁 Extract to: ~/Documents/MuseScore3/Plugins/VideoPlayer/"
