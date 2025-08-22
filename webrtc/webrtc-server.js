@@ -29,18 +29,14 @@ class WebRTCVideoStreamer {
         this.videoDuration = 0; // Durée totale de la vidéo
         this.staticFrameProcess = null; // Processus FFmpeg pour frames statiques
         this.lastPlayTime = 0; // Timestamp du dernier /play pour ignorer les /seek rapides
-        this.isReady = false; // Serveur prêt pour les commandes
-        this.pendingSetVideoRequests = []; // Queue pour les requêtes /set-video en attente
         
         this.setupServer();
         this.setupWebSocket();
         
-        // Marquer comme prêt après l'initialisation
+        // Server ready message
         setTimeout(() => {
-            this.isReady = true;
             console.log('✅ WebRTC Server is ready to accept commands');
-            this.processPendingSetVideoRequests();
-        }, 2000); // 2 secondes pour s'assurer que tout est initialisé
+        }, 2000);
     }
     
     setupServer() {
@@ -117,14 +113,6 @@ class WebRTCVideoStreamer {
         
         this.app.get('/set-video', (req, res) => {
             const videoPath = req.query.path;
-            
-            // Si le serveur n'est pas encore prêt, mettre en queue
-            if (!this.isReady) {
-                console.log(`ENDPOINT: /set-video → "${videoPath}" (server not ready, queuing request)`);
-                this.pendingSetVideoRequests.push({ videoPath, res });
-                return;
-            }
-            
             this.handleSetVideoRequest(videoPath, res);
         });
         
@@ -149,10 +137,6 @@ class WebRTCVideoStreamer {
             });
         });
         
-        this.app.get('/player-ready', (req, res) => {
-            console.log(`ENDPOINT: /player-ready → ready: ${this.isReady}`);
-            res.status(200).json({ ready: this.isReady });
-        });
         
         
         this.app.get('/clear-video', (req, res) => {
@@ -388,14 +372,6 @@ class WebRTCVideoStreamer {
         res.status(200).json({ok: true, status: 'loaded'});
     }
     
-    processPendingSetVideoRequests() {
-        console.log(`📋 Processing ${this.pendingSetVideoRequests.length} pending /set-video requests`);
-        
-        while (this.pendingSetVideoRequests.length > 0) {
-            const request = this.pendingSetVideoRequests.shift();
-            this.handleSetVideoRequest(request.videoPath, request.res);
-        }
-    }
     
     stopStreaming() {
         if (this.ffmpegProcess) {

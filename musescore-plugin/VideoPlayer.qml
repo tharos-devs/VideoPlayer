@@ -32,7 +32,7 @@ MuseScore {
     id: qproc
     onReadyReadStandardOutput: {
       var output = readAllStandardOutput().toString()
-      console.log("INSTANCE", pluginInstanceId, "VideoPlayer output:", output)
+      console.log("INSTANCE", pluginInstanceId, "VideoPlayer stdout:", output)
       
       if (output.indexOf("WEBRTC_SERVER_READY") !== -1) {
         console.log("INSTANCE", pluginInstanceId, "WebRTC server is ready!")
@@ -43,6 +43,10 @@ MuseScore {
           fileDialog.visible = true
         }
       }
+    }
+    onReadyReadStandardError: {
+      var error = readAllStandardError().toString()
+      console.log("INSTANCE", pluginInstanceId, "VideoPlayer stderr:", error)
     }
   }
 
@@ -265,11 +269,7 @@ MuseScore {
     }
   }
 
-  function sendCommand(command, params, callback) {
-    if (typeof params === 'function') {
-      callback = params
-      params = ''
-    }
+  function sendCommand(command, params) {
     if (!params) params = ''
     
     var url = "http://localhost:5173"
@@ -278,7 +278,6 @@ MuseScore {
         url = url + "/set-video?path=" + encodeURIComponent(params)
         break
       case 'pause':
-      case 'player-ready':
         url = url + "/" + command
         break
       default:
@@ -288,17 +287,6 @@ MuseScore {
 
     var xhr = new XMLHttpRequest()
     xhr.open("GET", url, true)
-    
-    xhr.onreadystatechange = function() {
-      if (xhr.readyState === 4) {
-        if (xhr.status === 200) {
-          if (callback) callback(null, xhr.responseText)
-        } else {
-          if (callback) callback(new Error(`HTTP ${xhr.status}: ${xhr.statusText}`), null)
-        }
-      }
-    }
-    
     xhr.send()
     console.log("INSTANCE", pluginInstanceId, command, params, url)
   }
