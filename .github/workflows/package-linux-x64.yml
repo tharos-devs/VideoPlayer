@@ -54,9 +54,14 @@ jobs:
           # Copy built executable
           cp "src-tauri/target/x86_64-unknown-linux-gnu/release/VideoPlayer" VideoPlayer/
           
-          # Copy webrtc directory (excluding dev files)
+          # Copy webrtc directory and install dependencies
           cp -r webrtc VideoPlayer/
           rm -f VideoPlayer/webrtc/package-lock.json
+          
+          # Install webrtc dependencies
+          cd VideoPlayer/webrtc
+          npm install --production
+          cd ../..
           
           # Make executable
           chmod +x VideoPlayer/VideoPlayer

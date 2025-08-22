@@ -4,9 +4,79 @@ const ffmpeg = require('fluent-ffmpeg');
 const fs = require('fs');
 const path = require('path');
 
-// Configuration des binaires statiques FFmpeg
-const ffmpegPath = require('ffmpeg-static');
-const ffprobePath = require('ffprobe-static').path;
+// Configuration des binaires statiques FFmpeg avec fallback
+function getFFmpegPath() {
+    try {
+        // Essayer d'abord le package ffmpeg-static
+        const staticPath = require('ffmpeg-static');
+        if (staticPath && fs.existsSync(staticPath)) {
+            return staticPath;
+        }
+    } catch (e) {
+        console.log('ffmpeg-static package not found, trying fallbacks...');
+    }
+    
+    // Fallbacks pour différents environnements
+    const fallbackPaths = [
+        'ffmpeg', // Système PATH
+        './node_modules/ffmpeg-static/ffmpeg', // Relatif local
+        '../node_modules/ffmpeg-static/ffmpeg', // Relatif parent
+        '/usr/bin/ffmpeg', // Linux système
+        '/usr/local/bin/ffmpeg', // macOS Homebrew
+        '/opt/homebrew/bin/ffmpeg' // macOS Apple Silicon
+    ];
+    
+    for (const testPath of fallbackPaths) {
+        try {
+            const { execSync } = require('child_process');
+            execSync(`"${testPath}" -version`, { stdio: 'ignore' });
+            console.log(`Found working ffmpeg at: ${testPath}`);
+            return testPath;
+        } catch (e) {
+            // Continuer au suivant
+        }
+    }
+    
+    throw new Error('FFmpeg not found in any location');
+}
+
+function getFFprobePath() {
+    try {
+        // Essayer d'abord le package ffprobe-static
+        const staticPath = require('ffprobe-static').path;
+        if (staticPath && fs.existsSync(staticPath)) {
+            return staticPath;
+        }
+    } catch (e) {
+        console.log('ffprobe-static package not found, trying fallbacks...');
+    }
+    
+    // Fallbacks pour différents environnements
+    const fallbackPaths = [
+        'ffprobe', // Système PATH
+        './node_modules/ffprobe-static/bin/ffprobe', // Relatif local
+        '../node_modules/ffprobe-static/bin/ffprobe', // Relatif parent
+        '/usr/bin/ffprobe', // Linux système
+        '/usr/local/bin/ffprobe', // macOS Homebrew
+        '/opt/homebrew/bin/ffprobe' // macOS Apple Silicon
+    ];
+    
+    for (const testPath of fallbackPaths) {
+        try {
+            const { execSync } = require('child_process');
+            execSync(`"${testPath}" -version`, { stdio: 'ignore' });
+            console.log(`Found working ffprobe at: ${testPath}`);
+            return testPath;
+        } catch (e) {
+            // Continuer au suivant
+        }
+    }
+    
+    throw new Error('FFprobe not found in any location');
+}
+
+const ffmpegPath = getFFmpegPath();
+const ffprobePath = getFFprobePath();
 
 // Debug flag - set to false for better performance (less console.log)
 const ENABLE_DEBUG_LOGS = false;
@@ -338,6 +408,15 @@ class WebRTCVideoStreamer {
         });
     }
     
+    // Méthodes pour obtenir les chemins FFmpeg/FFprobe de façon robuste
+    getFFmpegPath() {
+        return ffmpegPath; // Utilise la variable globale déjà initialisée
+    }
+    
+    getFFprobePath() {
+        return ffprobePath; // Utilise la variable globale déjà initialisée
+    }
+    
     startStreaming(forceBroadcast = true) {
         if (!this.currentVideo || !fs.existsSync(this.currentVideo)) {
             console.log('Video file not found for streaming');
@@ -368,7 +447,7 @@ class WebRTCVideoStreamer {
         
         
         try {
-            this.ffmpegProcess = spawn(ffmpegPath, ffmpegArgs);
+            this.ffmpegProcess = spawn(this.getFFmpegPath(), ffmpegArgs);
             
             // Contrôler la diffusion selon le paramètre
             if (forceBroadcast) {
@@ -508,7 +587,7 @@ class WebRTCVideoStreamer {
         ];
         
         try {
-            this.staticFrameProcess = spawn(ffmpegPath, ffmpegArgs);
+            this.staticFrameProcess = spawn(this.getFFmpegPath(), ffmpegArgs);
             
             let frameBuffer = Buffer.alloc(0);
             
@@ -548,7 +627,7 @@ class WebRTCVideoStreamer {
         return new Promise((resolve) => {
             const { spawn } = require('child_process');
             
-            const ffprobe = spawn(ffprobePath, [
+            const ffprobe = spawn(this.getFFprobePath(), [
                 '-v', 'quiet',
                 '-show_entries', 'format=duration',
                 '-of', 'csv=p=0',

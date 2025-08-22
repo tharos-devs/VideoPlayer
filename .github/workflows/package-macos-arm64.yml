@@ -68,9 +68,14 @@ jobs:
           # Copy built application bundle
           cp -r "src-tauri/target/aarch64-apple-darwin/release/bundle/macos/VideoPlayer.app" VideoPlayer/
           
-          # Copy webrtc directory (excluding dev files)
+          # Copy webrtc directory and install dependencies
           cp -r webrtc VideoPlayer/
           rm -f VideoPlayer/webrtc/package-lock.json
+          
+          # Install webrtc dependencies
+          cd VideoPlayer/webrtc
+          npm install --production
+          cd ../..
           
           # List contents for verification
           echo "📦 VideoPlayer directory contents:"

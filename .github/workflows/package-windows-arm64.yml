@@ -63,9 +63,14 @@ jobs:
           # Copy built executable
           Copy-Item "src-tauri\target\aarch64-pc-windows-msvc\release\VideoPlayer.exe" "VideoPlayer\"
           
-          # Copy webrtc directory (excluding dev files)
+          # Copy webrtc directory and install dependencies
           Copy-Item "webrtc" "VideoPlayer\webrtc" -Recurse
           Remove-Item "VideoPlayer\webrtc\package-lock.json" -ErrorAction SilentlyContinue
+          
+          # Install webrtc dependencies
+          Set-Location "VideoPlayer\webrtc"
+          npm install --production
+          Set-Location "..\.."
           
           # List contents for verification
           Write-Host "📦 VideoPlayer directory contents:"
