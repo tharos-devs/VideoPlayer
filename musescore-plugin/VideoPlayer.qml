@@ -30,6 +30,20 @@ MuseScore {
 
   QProcess {
     id: qproc
+    onReadyReadStandardOutput: {
+      var output = readAllStandardOutput().toString()
+      console.log("INSTANCE", pluginInstanceId, "VideoPlayer output:", output)
+      
+      if (output.indexOf("WEBRTC_SERVER_READY") !== -1) {
+        console.log("INSTANCE", pluginInstanceId, "WebRTC server is ready!")
+        videoSource = curScore.metaTag("videoSource")
+        if (videoSource && videoSource !== "") {
+          showMain = true
+        } else {
+          fileDialog.visible = true
+        }
+      }
+    }
   }
 
   PlaybackToolBarModel {
@@ -76,34 +90,6 @@ MuseScore {
     }
   }
 
-  Timer {
-    id: readyChecker
-    interval: 500
-    running: false
-    repeat: true
-    onTriggered: {
-      // On ne lit pas la réponse, on détecte juste si le serveur répond
-      var xhr = new XMLHttpRequest()
-      xhr.open("GET", "http://localhost:5173/status", true)
-      xhr.onreadystatechange = function() {
-        if (xhr.readyState === 4) {
-          // Peu importe le status, si readyState === 4, le serveur a répondu
-          if (xhr.status !== 0) {
-            // Serveur disponible
-            videoSource = curScore.metaTag("videoSource");
-            if (videoSource && videoSource !== "") {
-              showMain = true
-            } else {
-              fileDialog.visible = true
-            }
-            readyChecker.stop()
-          }
-          // Si xhr.status === 0, on continue à attendre
-        }
-      }
-      xhr.send()
-    }
-  }
 
   Timer {
     id: player
@@ -374,7 +360,6 @@ MuseScore {
     const videoPlayer = getVideoPlayer()
     qproc.startWithArgs(videoPlayer, [])
     
-    // Vérifier que le serveur répond (sans lire la réponse)
-    readyChecker.start()
+    // La synchronisation se fait via onReadyReadStandardOutput du QProcess
   }
 }

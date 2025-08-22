@@ -205,6 +205,9 @@ async fn main() {
 
     // Wait a moment for server to start
     std::thread::sleep(std::time::Duration::from_millis(1000));
+    
+    // Signal au plugin QML que le serveur WebRTC est prêt
+    println!("WEBRTC_SERVER_READY");
 
 
     
