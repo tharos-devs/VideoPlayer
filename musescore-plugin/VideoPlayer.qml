@@ -79,14 +79,16 @@ MuseScore {
   Timer {
     id: loader
     interval: 500
-    running: true
+    running: true  // Démarre automatiquement et interroge en boucle
     repeat: true
     onTriggered: {
       sendCommand('player-ready', '', function(error, result) {
         if (!error && result) {
           try {
             var response = JSON.parse(result);
+            console.log("INSTANCE", pluginInstanceId, 'player-ready response:', JSON.stringify(response));
             if (response.ready === true) {
+              console.log("INSTANCE", pluginInstanceId, 'Player is ready! Starting sync...');
               videoSource = curScore.metaTag("videoSource");
               if (videoSource && videoSource !== "") {
                 showMain = true
@@ -94,12 +96,19 @@ MuseScore {
                 fileDialog.visible = true
               }
               loader.stop()
+            } else {
+              console.log("INSTANCE", pluginInstanceId, 'Player not ready yet, ready =', response.ready);
             }
           } catch(e) {
-            console.log("INSTANCE", pluginInstanceId, 'Invalid JSON response from player-ready')
+            console.log("INSTANCE", pluginInstanceId, 'Invalid JSON response from player-ready:', e.toString());
+            console.log("INSTANCE", pluginInstanceId, 'Raw result:', result);
           }
         } else {
-          console.log("INSTANCE", pluginInstanceId, 'Waiting for player ready...')
+          if (error) {
+            console.log("INSTANCE", pluginInstanceId, 'Error calling player-ready:', error.toString());
+          } else {
+            console.log("INSTANCE", pluginInstanceId, 'No result from player-ready');
+          }
         }
       })
     }
@@ -279,18 +288,24 @@ MuseScore {
     }
   }
 
-  function sendCommand(command, params = '', callback) {
-    var url = `http://localhost:5173`
+  function sendCommand(command, params, callback) {
+    if (typeof params === 'function') {
+      callback = params
+      params = ''
+    }
+    if (!params) params = ''
+    
+    var url = "http://localhost:5173"
     switch (command) {
       case 'set-video':
-        url = `${url}/set-video?path=${encodeURIComponent(params)}`
+        url = url + "/set-video?path=" + encodeURIComponent(params)
         break
       case 'pause':
       case 'player-ready':
-        url = `${url}/${command}`
+        url = url + "/" + command
         break
       default:
-        url = `${url}/${command}/${params}`
+        url = url + "/" + command + "/" + params
         break
     }
 
