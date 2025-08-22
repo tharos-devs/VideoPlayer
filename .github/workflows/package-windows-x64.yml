@@ -63,8 +63,9 @@ jobs:
           # Copy built executable
           Copy-Item "src-tauri\target\x86_64-pc-windows-msvc\release\VideoPlayer.exe" "musescore-package\"
           
-          # Copy webrtc directory
+          # Copy webrtc directory (excluding dev files)
           Copy-Item "webrtc" "musescore-package\webrtc" -Recurse
+          Remove-Item "musescore-package\webrtc\package-lock.json" -ErrorAction SilentlyContinue
           
           # List contents for verification
           Write-Host "📦 Package contents:"

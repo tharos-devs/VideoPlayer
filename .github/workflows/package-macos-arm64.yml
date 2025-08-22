@@ -68,8 +68,9 @@ jobs:
           # Copy built application bundle
           cp -r "src-tauri/target/aarch64-apple-darwin/release/bundle/macos/VideoPlayer.app" musescore-package/
           
-          # Copy webrtc directory
+          # Copy webrtc directory (excluding dev files)
           cp -r webrtc musescore-package/
+          rm -f musescore-package/webrtc/package-lock.json
           
           # List contents for verification
           echo "📦 Package contents:"

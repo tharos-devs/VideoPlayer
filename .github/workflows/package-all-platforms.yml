@@ -120,8 +120,9 @@ jobs:
           # Copy built executable
           Copy-Item "src-tauri\target\${{ matrix.target }}\release\${{ matrix.executable }}" "musescore-package\"
           
-          # Copy webrtc directory
+          # Copy webrtc directory (excluding dev files)
           Copy-Item "webrtc" "musescore-package\webrtc" -Recurse
+          Remove-Item "musescore-package\webrtc\package-lock.json" -ErrorAction SilentlyContinue
           
           # List contents for verification
           Write-Host "📦 Package contents:"
@@ -142,8 +143,9 @@ jobs:
           # Copy built application bundle
           cp -r "src-tauri/target/${{ matrix.target }}/release/bundle/macos/${{ matrix.executable }}" musescore-package/
           
-          # Copy webrtc directory
+          # Copy webrtc directory (excluding dev files)
           cp -r webrtc musescore-package/
+          rm -f musescore-package/webrtc/package-lock.json
           
           # List contents for verification
           echo "📦 Package contents:"
@@ -163,8 +165,9 @@ jobs:
           # Copy built executable
           cp "src-tauri/target/${{ matrix.target }}/release/${{ matrix.executable }}" musescore-package/
           
-          # Copy webrtc directory
+          # Copy webrtc directory (excluding dev files)
           cp -r webrtc musescore-package/
+          rm -f musescore-package/webrtc/package-lock.json
           
           # Make executable
           chmod +x musescore-package/${{ matrix.executable }}
