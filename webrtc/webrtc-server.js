@@ -143,6 +143,12 @@ class WebRTCVideoStreamer {
             res.status(200).json({ok: true});
         });
         
+        this.app.get('/open-player', (req, res) => {
+            console.log('ENDPOINT: /open-player');
+            // La fenêtre Tauri est déjà ouverte, on retourne juste success
+            res.status(200).json({ok: true, message: 'Player window already open'});
+        });
+        
         // State endpoint for HTTP polling mode
         this.app.get('/state', (req, res) => {
             res.status(200).json({

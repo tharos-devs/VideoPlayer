@@ -1,53 +1,164 @@
-// /Applications/MuseScore\ 4.app/Contents/MacOS/mscore -d
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
+import QtQuick 2.9
+import QtQuick.Controls 2.2
+import QtQuick.Window 2.2
 import Muse.UiComponents 1.0
+import QtQuick.Layouts 1.15
 import MuseScore.Playback 1.0
 import MuseScore 3.0
 
 MuseScore {
   id: plugin
-  title: "Video Player"
-  description: "Video Player"
+  title: "Video player"
+  description: "Video player for MuseScore 4+"
   thumbnailName: "logo.png"
   version: "1.0.0"
-  // pluginType: "dialog"
-
-  width: 400
-  height: 160
 
   property int pluginInstanceId: Number(Math.floor(Math.random() * 10000))
   property var videoSource: ""
   property var playbackModel: null
   property bool showError: false
-  property bool showMain: false
-
+  
   // Palette système pour s'adapter au thème
   SystemPalette {
     id: palette
   }
 
-  QProcess {
-    id: qproc
-    onReadyReadStandardOutput: {
-      var output = readAllStandardOutput().toString()
-      console.log("INSTANCE", pluginInstanceId, "VideoPlayer stdout:", output)
-      
-      if (output.indexOf("WEBRTC_SERVER_READY") !== -1) {
-        console.log("INSTANCE", pluginInstanceId, "WebRTC server is ready!")
-        videoSource = curScore.metaTag("videoSource")
-        if (videoSource && videoSource !== "") {
-          showMain = true
-        } else {
-          fileDialog.visible = true
+  // Vue Principale
+  Window {
+    id: dialogWindow
+    title: "Video Player"
+    width: 400
+    height: 160
+    modality: Qt.Window | Qt.WindowStaysOnTopHint
+    flags: Qt.Dialog
+
+    // Main view
+    Rectangle {
+      anchors.fill: parent
+      color: palette.window
+
+      ColumnLayout {
+        anchors.fill: parent
+        anchors.margins: 20
+        spacing: 10
+
+        // Question principale
+        Text {
+          text: "Load file or select new video?"
+          font.pixelSize: 14
+          Layout.fillWidth: true
+          wrapMode: Text.WordWrap
+          color: palette.windowText
+        }
+
+        // Texte d'information sur le fichier
+        Text {
+          text: "Video file: " + videoSource
+          font.pixelSize: 12
+          Layout.fillWidth: true
+          wrapMode: Text.WordWrap
+          color: palette.windowText
+        }
+
+        // Espacement flexible
+        Item {
+          Layout.fillHeight: true
+        }
+
+        // Boutons d'action
+        RowLayout {
+          Layout.fillWidth: true
+          Layout.alignment: Qt.AlignHCenter
+          spacing: 10
+
+          FlatButton {
+            id: loadButton
+            text: "Load"
+            accentButton: true
+            focus: true
+            Layout.preferredWidth: 100
+
+            onClicked: {
+              sendCommand('set-video', videoSource)
+              player.start()
+              dialogWindow.close()
+            }
+          }
+
+          FlatButton {
+            id: selectButton
+            text: "Select"
+            Layout.preferredWidth: 100
+
+            onClicked: {
+              fileDialog.visible = true
+              dialogWindow.close()
+            }
+          }
+
+          FlatButton {
+            id: cancelButton
+            text: "Cancel"
+            Layout.preferredWidth: 100
+
+            onClicked: {
+              dialogWindow.close()
+              quit()
+            }
+          }
         }
       }
     }
-    onReadyReadStandardError: {
-      var error = readAllStandardError().toString()
-      console.log("INSTANCE", pluginInstanceId, "VideoPlayer stderr:", error)
+    
+    onClosing: {
+      quit()
     }
+  }
+
+  Window {
+    id: errorWindow
+    title: "Video Player"
+    width: 400
+    height: 300
+    modality: Qt.ApplicationModal
+    flags: Qt.Dialog
+
+    Rectangle {
+      anchors.fill: parent
+      color: palette.window
+
+      ColumnLayout {
+        anchors.fill: parent
+        anchors.margins: 20
+        spacing: 10
+
+        Text {
+          text: "Video Player"
+          font.pixelSize: 16
+          font.bold: true
+          Layout.alignment: Qt.AlignHCenter
+          color: palette.windowText
+        }
+
+        Text {
+          text: "Only for Musescore 4+"
+          font.pixelSize: 14
+          Layout.alignment: Qt.AlignHCenter
+          color: palette.windowText
+        }
+
+        FlatButton {
+          text: "OK"
+          Layout.alignment: Qt.AlignHCenter
+          Layout.preferredWidth: 100
+          accentButton: true
+          onClicked: {
+            quit()
+          }
+        }
+      }
+    }
+
   }
 
   PlaybackToolBarModel {
@@ -71,11 +182,9 @@ MuseScore {
       fileDialog.visible = false
       sendCommand('set-video', filePath)
       player.start()
-      quit()
     }
     onRejected: {
       fileDialog.visible = false
-      quit()
     }
   }
 
@@ -95,7 +204,32 @@ MuseScore {
     }
   }
 
+  // Timer de vérification de l'état du player
+  Timer {
+    id: playerReadyTimer
+    interval: 200
+    running: false
+    repeat: true
+    
+    onTriggered: {
+      checkPlayerReady(function(ready) {
+        if (ready) {
+          console.log("INSTANCE", pluginInstanceId, "Player ready - stopping timer and opening interface")
+          playerReadyTimer.stop()
+          
+          // Ouvrir l'interface appropriée
+          videoSource = curScore.metaTag("videoSource")
+          if (videoSource && videoSource !== "") {
+            dialogWindow.show()
+          } else {
+            fileDialog.visible = true
+          }
+        }
+      })
+    }
+  }
 
+  // Timer d'écoute des commandes playback
   Timer {
     id: player
     interval: 100
@@ -153,134 +287,49 @@ MuseScore {
     }
   }
 
-  // Vue d'erreur
-  Rectangle {
-    id: errorView
-    visible: showError
-    anchors.fill: parent
-    color: palette.window
-
-    ColumnLayout {
-      anchors.centerIn: parent
-      spacing: 10
-
-      Text {
-        text: "Video Player"
-        font.pixelSize: 16
-        font.bold: true
-        Layout.alignment: Qt.AlignHCenter
-        color: palette.windowText
-    }
-
-      Text {
-        text: "Only for Musescore 4+"
-        font.pixelSize: 14
-        Layout.alignment: Qt.AlignHCenter
-        color: palette.windowText
-      }
-
-      FlatButton {
-        text: "OK"
-        Layout.alignment: Qt.AlignHCenter
-        Layout.preferredWidth: 100
-        accentButton: true
-        onClicked: {
-          quit()
+  function checkPlayerReady(callback) {
+    var xhr = new XMLHttpRequest()
+    xhr.open("GET", "http://localhost:5173/state", true)
+    xhr.onreadystatechange = function() {
+      if (xhr.readyState === XMLHttpRequest.DONE) {
+        if (xhr.status === 200) {
+          console.log("INSTANCE", pluginInstanceId, "Player is ready (status 200)")
+          callback(true)
+        } else {
+          console.log("INSTANCE", pluginInstanceId, "Player not ready, status:", xhr.status)
+          callback(false)
         }
       }
     }
-  }
-
-  // Vue principale
-  Rectangle {
-    id: mainView
-    visible: showMain
-    anchors.fill: parent
-    color: palette.window
-
-    ColumnLayout {
-      anchors.fill: parent
-      anchors.margins: 20
-      spacing: 10
-
-      // Question principale
-      Text {
-        text: "Load file or select new video?"
-        font.pixelSize: 14
-        Layout.fillWidth: true
-        wrapMode: Text.WordWrap
-        color: palette.windowText
-      }
-
-      // Texte d'information sur le fichier
-      Text {
-        text: "Video file: " + videoSource
-        font.pixelSize: 12
-        Layout.fillWidth: true
-        wrapMode: Text.WordWrap
-        color: palette.windowText
-      }
-
-      // Espacement flexible
-      Item {
-        Layout.fillHeight: true
-      }
-
-      // Boutons d'action
-      RowLayout {
-        Layout.fillWidth: true
-        Layout.alignment: Qt.AlignHCenter
-        spacing: 10
-
-        FlatButton {
-          id: loadButton
-          text: "Load"
-          accentButton: true
-          focus: true
-          Layout.preferredWidth: 100
-
-          onClicked: {
-            sendCommand('set-video', videoSource)
-            player.start()
-            quit()
-          }
-        }
-
-        FlatButton {
-          id: selectButton
-          text: "Select"
-          Layout.preferredWidth: 100
-
-          onClicked: {
-            fileDialog.visible = true
-            quit()
-          }
-        }
-
-        FlatButton {
-          id: cancelButton
-          text: "Cancel"
-          Layout.preferredWidth: 100
-
-          onClicked: {
-            quit()
-          }
-        }
-      }
-    }
+    xhr.send()
   }
 
   function sendCommand(command, params) {
     if (!params) params = ''
     
+    if (command === 'set-video') {
+      // Vérifier que le player est prêt avant d'envoyer set-video
+      checkPlayerReady(function(ready) {
+        if (ready) {
+          var url = "http://localhost:5173/set-video?path=" + encodeURIComponent(params)
+          var xhr = new XMLHttpRequest()
+          xhr.open("GET", url, true)
+          xhr.send()
+          console.log("INSTANCE", pluginInstanceId, "set-video", params, url)
+        } else {
+          // Retry after 500ms
+          Qt.callLater(function() {
+            sendCommand('set-video', params)
+          })
+        }
+      })
+      return
+    }
+    
     var url = "http://localhost:5173"
     switch (command) {
-      case 'set-video':
-        console.log("INSTANCE", pluginInstanceId, "Raw params:", JSON.stringify(params))
-        console.log("INSTANCE", pluginInstanceId, "Encoded params:", encodeURIComponent(params))
-        url = url + "/set-video?path=" + encodeURIComponent(params)
-        break
       case 'pause':
+      case 'open-player':
         url = url + "/" + command
         break
       default:
@@ -291,9 +340,9 @@ MuseScore {
     var xhr = new XMLHttpRequest()
     xhr.open("GET", url, true)
     xhr.send()
-    console.log("INSTANCE", pluginInstanceId, command, "Final URL:", url)
-  }
-
+    console.log("INSTANCE", pluginInstanceId, command, params, url)
+  }  
+    
   function getVideoPlayer() {
     const path = Qt.resolvedUrl(".");
     var videoPlayer = ""
@@ -328,13 +377,7 @@ MuseScore {
       normalizedPath = p
     }
     return normalizedPath
-  }     
-
-  Component.onCompleted: {
-    if (mscoreMajorVersion < 4) {
-      showError = true
-    }
-  }
+  }   
 
   onRun: {
     if (!curScore) {
@@ -348,9 +391,10 @@ MuseScore {
     curScore.setMetaTag("videoPlayerId", pluginInstanceId)
     curScore.endCmd()
 
-    const videoPlayer = getVideoPlayer()
-    qproc.startWithArgs(videoPlayer, [])
+    // Envoyer commande /open-player pour ouvrir le lecteur
+    sendCommand('open-player')
     
-    // La synchronisation se fait via onReadyReadStandardOutput du QProcess
+    // Démarrer le Timer de vérification
+    playerReadyTimer.start()
   }
 }
