@@ -289,14 +289,17 @@ MuseScore {
 
   function checkPlayerReady(callback) {
     var xhr = new XMLHttpRequest()
-    xhr.open("GET", "http://localhost:5173/state", true)
+    xhr.open("GET", "http://localhost:5173/ready", true)
+    xhr.setRequestHeader("User-Agent", "MuseScore-VideoPlayer-Plugin/1.0")
+    xhr.setRequestHeader("Cache-Control", "no-cache")
     xhr.onreadystatechange = function() {
       if (xhr.readyState === XMLHttpRequest.DONE) {
-        if (xhr.status === 200) {
-          console.log("INSTANCE", pluginInstanceId, "Player is ready (status 200)")
+        console.log("INSTANCE", pluginInstanceId, "XHR completed - readyState:", xhr.readyState, "status:", xhr.status, "responseText:", xhr.responseText)
+        if (xhr.status === 200 && xhr.responseText === "OK") {
+          console.log("INSTANCE", pluginInstanceId, "Player is ready (status 200, response OK)")
           callback(true)
         } else {
-          console.log("INSTANCE", pluginInstanceId, "Player not ready, status:", xhr.status)
+          console.log("INSTANCE", pluginInstanceId, "Player not ready, status:", xhr.status, "response:", xhr.responseText)
           callback(false)
         }
       }
