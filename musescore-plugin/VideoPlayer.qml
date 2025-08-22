@@ -77,31 +77,31 @@ MuseScore {
   }
 
   Timer {
-    id: loader
+    id: readyChecker
     interval: 500
-    running: false  // Ne démarre que quand on lance le processus VideoPlayer
+    running: false
     repeat: true
     onTriggered: {
-      sendCommand('player-ready', '', function(error, result) {
-        if (!error && result) {
-          try {
-            var response = JSON.parse(result);
-            if (response.ready === true) {
-              videoSource = curScore.metaTag("videoSource");
-              if (videoSource && videoSource !== "") {
-                showMain = true
-              } else {
-                fileDialog.visible = true
-              }
-              loader.stop()
+      // On ne lit pas la réponse, on détecte juste si le serveur répond
+      var xhr = new XMLHttpRequest()
+      xhr.open("GET", "http://localhost:5173/status", true)
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+          // Peu importe le status, si readyState === 4, le serveur a répondu
+          if (xhr.status === 200 || xhr.status !== 0) {
+            // Serveur disponible
+            videoSource = curScore.metaTag("videoSource");
+            if (videoSource && videoSource !== "") {
+              showMain = true
+            } else {
+              fileDialog.visible = true
             }
-          } catch(e) {
-            console.log("INSTANCE", pluginInstanceId, 'Invalid JSON response from player-ready');
+            readyChecker.stop()
           }
-        } else {
-          console.log("INSTANCE", pluginInstanceId, 'Waiting for player ready...');
+          // Si xhr.status === 0, on continue à attendre
         }
-      })
+      }
+      xhr.send()
     }
   }
 
@@ -306,10 +306,8 @@ MuseScore {
     xhr.onreadystatechange = function() {
       if (xhr.readyState === 4) {
         if (xhr.status === 200) {
-          // Succès - retourner la réponse via callback
           if (callback) callback(null, xhr.responseText)
         } else {
-          // Erreur - retourner l'erreur via callback
           if (callback) callback(new Error(`HTTP ${xhr.status}: ${xhr.statusText}`), null)
         }
       }
@@ -376,7 +374,7 @@ MuseScore {
     const videoPlayer = getVideoPlayer()
     qproc.startWithArgs(videoPlayer, [])
     
-    // Démarrer la synchronisation maintenant que le processus VideoPlayer est lancé
-    loader.start()
+    // Vérifier que le serveur répond (sans lire la réponse)
+    readyChecker.start()
   }
 }
