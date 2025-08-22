@@ -113,8 +113,8 @@ jobs:
           New-Item -ItemType Directory -Force -Path "VideoPlayer"
           
           # Copy plugin files
-          Copy-Item "plugins\VideoPlayer.qml" "VideoPlayer\"
-          Copy-Item "plugins\logo.png" "VideoPlayer\"
+          Copy-Item "musescore-plugin\VideoPlayer.qml" "VideoPlayer\"
+          Copy-Item "musescore-plugin\logo.png" "VideoPlayer\"
           Copy-Item "musescore-plugin\README.md" "VideoPlayer\"
           
           # Copy built executable
@@ -136,8 +136,8 @@ jobs:
           mkdir -p VideoPlayer
           
           # Copy plugin files
-          cp plugins/VideoPlayer.qml VideoPlayer/
-          cp plugins/logo.png VideoPlayer/
+          cp musescore-plugin/VideoPlayer.qml VideoPlayer/
+          cp musescore-plugin/logo.png VideoPlayer/
           cp musescore-plugin/README.md VideoPlayer/
           
           # Copy built application bundle
@@ -158,8 +158,8 @@ jobs:
           mkdir -p VideoPlayer
           
           # Copy plugin files
-          cp plugins/VideoPlayer.qml VideoPlayer/
-          cp plugins/logo.png VideoPlayer/
+          cp musescore-plugin/VideoPlayer.qml VideoPlayer/
+          cp musescore-plugin/logo.png VideoPlayer/
           cp musescore-plugin/README.md VideoPlayer/
           
           # Copy built executable

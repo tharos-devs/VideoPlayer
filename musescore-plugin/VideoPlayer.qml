@@ -11,7 +11,7 @@ MuseScore {
     title: "Video Player"
     description: "Video Player"
     thumbnailName: "logo.png"
-    version: "1.0"
+    version: "1.0.0"
     pluginType: "dialog"
 
     width: 400
@@ -56,6 +56,7 @@ MuseScore {
             fileDialog.visible = false;
         }
     }
+
 
     Timer {
         id: watcher
@@ -239,6 +240,7 @@ MuseScore {
         }
     }
 
+
     function sendCommand(command, params = '') {
         var url = `http://localhost:5173`;
         switch (command) {
@@ -257,7 +259,7 @@ MuseScore {
         xhr.open("GET", url, true)
         xhr.send()
 
-        console.log("INSTANCE", pluginInstanceId, "sendCommand: ", command, params, url)
+        console.log("INSTANCE", pluginInstanceId, "sendCommand: ", url)
     }
 
     function getVideoPlayer() {

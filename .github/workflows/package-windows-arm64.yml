@@ -56,8 +56,8 @@ jobs:
           New-Item -ItemType Directory -Force -Path "VideoPlayer"
           
           # Copy plugin files
-          Copy-Item "plugins\VideoPlayer.qml" "VideoPlayer\"
-          Copy-Item "plugins\logo.png" "VideoPlayer\"
+          Copy-Item "musescore-plugin\VideoPlayer.qml" "VideoPlayer\"
+          Copy-Item "musescore-plugin\logo.png" "VideoPlayer\"
           Copy-Item "musescore-plugin\README.md" "VideoPlayer\"
           
           # Copy built executable

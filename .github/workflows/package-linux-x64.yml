@@ -47,8 +47,8 @@ jobs:
           mkdir -p VideoPlayer
           
           # Copy plugin files
-          cp plugins/VideoPlayer.qml VideoPlayer/
-          cp plugins/logo.png VideoPlayer/
+          cp musescore-plugin/VideoPlayer.qml VideoPlayer/
+          cp musescore-plugin/logo.png VideoPlayer/
           cp musescore-plugin/README.md VideoPlayer/
           
           # Copy built executable
