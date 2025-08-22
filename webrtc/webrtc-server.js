@@ -149,8 +149,35 @@ class WebRTCVideoStreamer {
         
         this.app.get('/open-player', (req, res) => {
             console.log('ENDPOINT: /open-player');
-            // La fenêtre Tauri est déjà ouverte, on retourne juste success
-            res.status(200).json({ok: true, message: 'Player window already open'});
+            // Signal à Tauri de maintenir la fenêtre ouverte
+            const client = require('http');
+            const postData = JSON.stringify({
+                cmd: 'keep_window_open'
+            });
+            
+            const options = {
+                hostname: 'localhost',
+                port: 1420, // Port par défaut de Tauri
+                path: '/',
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Content-Length': Buffer.byteLength(postData)
+                }
+            };
+            
+            const req2 = client.request(options, (res2) => {
+                console.log('✅ Tauri window keep-alive signal sent');
+            });
+            
+            req2.on('error', (e) => {
+                console.log('⚠️ Could not signal Tauri:', e.message);
+            });
+            
+            req2.write(postData);
+            req2.end();
+            
+            res.status(200).json({ok: true, message: 'Player window keep-alive signal sent'});
         });
         
         // State endpoint for HTTP polling mode

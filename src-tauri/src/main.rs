@@ -25,6 +25,12 @@ struct AppData {
 
 
 #[tauri::command]
+async fn keep_window_open() -> Result<(), String> {
+    println!("🔒 COMMANDE /keep-window-open REÇUE - Fenêtre maintenue ouverte");
+    Ok(())
+}
+
+#[tauri::command]
 async fn handle_play_command() -> Result<(), String> {
     println!("🎮 COMMANDE /play REÇUE - Envoi au serveur WebRTC");
     
@@ -233,7 +239,8 @@ async fn main() {
         .invoke_handler(tauri::generate_handler![
             get_command,
             get_video_path,
-            handle_play_command
+            handle_play_command,
+            keep_window_open
         ])
         .setup(|_app| {
             // Setup cleanup on app termination
