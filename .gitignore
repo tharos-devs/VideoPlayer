@@ -241,6 +241,9 @@ electron-builder-cache/
 # CUSTOM PROJECT IGNORES
 # ==============================================================================
 
+# Claude Code session files
+.claude/
+
 # Add your custom ignores here:
 # custom-config.json
 # local-settings.json

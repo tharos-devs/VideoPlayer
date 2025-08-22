@@ -1,80 +1,134 @@
-# ⚡ Quick Build Guide
+# ⚡ Quick Build Guide - VideoPlayer MuseScore
 
 ## 🎯 Workflows Disponibles (TOUS MANUELS)
 
-### **🚀 Multi-plateformes :**
-- **`🚀 Build All Platforms`** - Windows + macOS + Linux (10-15 min)
+### **🚀 Recommandé - Tous les Packages :**
+- **`📦 Package All Platforms for MuseScore`** - 5 ZIP portables (5-10 min)
 
-### **⚡ Plateformes individuelles (RAPIDE) :**
-- **`🪟 Windows x64 Only`** - Windows x64 (~3-5 min)
-- **`🪟 Windows ARM64 Only`** - Windows ARM64 (~3-5 min)
-- **`🍎 macOS ARM64 Only`** - macOS Apple Silicon (~3-5 min)  
-- **`🍎 macOS Intel Only`** - macOS Intel x64 (~3-5 min)
-- **`🐧 Linux x64 Only`** - Linux x64 (~3-5 min)
+### **⚡ Plateformes individuelles (POUR TESTS) :**
+- **`📦 Package Windows x64 MuseScore`** - Windows 64-bit (~2-3 min)
+- **`📦 Package Windows ARM64 MuseScore`** - Windows ARM64 (~2-3 min)
+- **`📦 Package macOS ARM64 MuseScore`** - Apple Silicon M1/M2/M3/M4 (~2-3 min)  
+- **`📦 Package macOS x64 MuseScore`** - Intel Macs (~2-3 min)
+- **`📦 Package Linux x64 MuseScore`** - Linux 64-bit (~2-3 min)
 
-## 🚀 Comment lancer un build rapide
+## 🚀 Comment Générer un Package Rapidement
 
-### **Pour Windows (ton cas) :**
+### **Pour Toutes les Plateformes (Recommandé) :**
 
 1. **Va sur GitHub** → ton repo `VideoPlayer`
 2. **Clique sur "Actions"**
-3. **Dans la liste de gauche**, clique sur **"🪟 Windows x64 Only"**
+3. **Dans la liste de gauche**, clique sur **"📦 Package All Platforms for MuseScore"**
 4. **Clique sur "Run workflow"** (bouton bleu à droite)
-5. **Clique sur "Run workflow"** (dans la popup)
+5. **Clique sur "Run workflow"** (confirmer)
 
 ### **⏱️ Résultat :**
-- **Temps** : ~3-5 minutes (au lieu de 10-15 min)
-- **Artifact** : `videoplayer-windows-x64-only`
-- **Contenu** : `.msi` + `.exe` pour Windows
+- **Temps** : ~5-10 minutes
+- **Artifacts** : 5 ZIP versionnés
+  - `VideoPlayer-MuseScore-Windows-x64-v1.0.0`
+  - `VideoPlayer-MuseScore-Windows-ARM64-v1.0.0`
+  - `VideoPlayer-MuseScore-macOS-x64-v1.0.0`
+  - `VideoPlayer-MuseScore-macOS-ARM64-v1.0.0`
+  - `VideoPlayer-MuseScore-Linux-x64-v1.0.0`
+
+### **Pour Une Seule Plateforme (Tests) :**
+
+**Exemple Windows x64 :**
+1. **Actions** → **"📦 Package Windows x64 MuseScore"** → **"Run workflow"**
+2. **Attendre** ~2-3 min  
+3. **Télécharger** `VideoPlayer-MuseScore-Windows-x64-v1.0.0`
 
 ## 📱 Interface GitHub Actions
 
 ```
-Actions (TOUS MANUELS)
-├── 🚀 Build All Platforms       ← Multi-plateformes complet
-├── 🪟 Windows x64 Only          ← CLIQUE ICI pour Windows x64 rapide
-├── 🪟 Windows ARM64 Only        ← Windows ARM (Surface Pro X, etc.)
-├── 🍎 macOS ARM64 Only          ← Apple Silicon (M1/M2/M3)
-├── 🍎 macOS Intel Only          ← Intel Macs
-├── 🐧 Linux x64 Only            ← Linux AMD64/Intel
-└── 🎁 Manual Release            ← Release officielle
+Actions (TOUS MANUELS - AUCUN BUILD AUTOMATIQUE)
+├── 📦 Package All Platforms for MuseScore    ← RECOMMANDÉ
+├── 📦 Package Windows x64 MuseScore          ← Test Windows 64-bit
+├── 📦 Package Windows ARM64 MuseScore        ← Test Windows ARM
+├── 📦 Package macOS ARM64 MuseScore          ← Test Apple Silicon
+├── 📦 Package macOS x64 MuseScore            ← Test Intel Macs  
+└── 📦 Package Linux x64 MuseScore            ← Test Linux
 ```
 
-## 🎯 Utilisation pratique
+## 🎯 Utilisation Pratique
 
 ### **Développement quotidien :**
 ```bash
-# Push code → AUCUN build automatique (par choix)
+# 1. Changer version si nécessaire (tauri.conf.json)
+# 2. Synchroniser versions
+npm run sync-version
+
+# 3. Push code → AUCUN build automatique
 git push origin main
-# Puis lancer manuellement le build souhaité
+
+# 4. Lancer workflow manuellement selon besoin
 ```
 
-### **Test rapide Windows :**
-1. GitHub → Actions → "🪟 Windows x64 Only" → Run workflow
-2. Attendre 3-5 min
-3. Télécharger `videoplayer-windows-x64-only`
+### **Scénarios Courants :**
 
-### **Test rapide macOS :**
-1. GitHub → Actions → "🍎 macOS ARM64 Only" → Run workflow
+**🔧 Je développe et veux tester sur une plateforme :**
+→ Utilise un workflow individuel (~2-3 min)
 
-### **Test rapide Linux :**
-1. GitHub → Actions → "🐧 Linux x64 Only" → Run workflow
+**📦 Je veux distribuer/livrer :**
+→ Utilise `Package All Platforms` (~5-10 min)
 
-## ✅ Avantages (TOUS MANUELS)
+**🐛 Debug problème spécifique plateforme :**
+→ Utilise le workflow de cette plateforme uniquement
 
-- ✅ **Contrôle total** - Aucun build surprise sur push
-- ✅ **Plus de queue** - Un seul runner par build choisi
-- ✅ **Économie resources** - Build seulement ce dont tu as besoin
-- ✅ **Flexibilité maximale** - Choix précis de la plateforme
-- ✅ **Débug facile** - Erreurs isolées par plateforme
+## 📦 Ce que Contient Chaque ZIP
 
-## 🚀 Options de build
+```
+VideoPlayer-MuseScore-[Platform]-v[Version]/
+├── VideoPlayer.qml          # Plugin MuseScore
+├── logo.png                 # Logo du plugin  
+├── README.md                 # Instructions utilisateur
+├── VideoPlayer.exe/.app     # Lecteur vidéo portable
+└── webrtc/                  # Serveur WebRTC (tout inclus)
+```
 
-### **Rapide (1 plateforme) :**
-- **`🪟 Windows x64 Only`** etc. → 3-5 min
+## ✅ Avantages du Système Actuel
 
-### **Complet (toutes plateformes) :**
-- **`🚀 Build All Platforms`** → 10-15 min
+- ✅ **Contrôle total** - Builds uniquement à la demande
+- ✅ **ZIP portables** - Pas d'installateurs (.msi/.dmg)
+- ✅ **Versioning automatique** - Noms de fichiers avec version
+- ✅ **Multi-plateformes** - Windows, macOS, Linux
+- ✅ **Architecture multiple** - x64 + ARM64
+- ✅ **Prêt MuseScore** - Plugin + lecteur dans le même ZIP
+- ✅ **Économie ressources** - Build seulement ce que tu veux
 
-### **Release officielle :**
-- **`🎁 Manual Release`** → GitHub Release
+## 🎵 Après le Build - Distribution MuseScore
+
+### **Pour tes Utilisateurs :**
+1. **Téléchargent** le ZIP de leur plateforme
+2. **Décompressent** dans `~/Documents/MuseScore4/Plugins/VideoPlayer/`
+3. **Redémarrent** MuseScore  
+4. **Activent** : Plugins → Plugin Manager → VideoPlayer ✅
+5. **Utilisent** : Plugins → VideoPlayer
+
+### **Plateformes Supportées :**
+- **Windows** : x64 + ARM64 (Surface Pro X, etc.)
+- **macOS** : Intel + Apple Silicon (M1/M2/M3/M4)
+- **Linux** : x64
+
+## 🔄 Workflow de Version
+
+```bash
+# 1. Modifier version (source unique)
+# vim src-tauri/tauri.conf.json → "version": "1.0.1"
+
+# 2. Synchroniser partout
+npm run sync-version
+
+# 3. Commit
+git add . && git commit -m "Bump to v1.0.1"
+
+# 4. Lancer Package All Platforms
+# Résultat : VideoPlayer-MuseScore-[Platform]-v1.0.1.zip
+```
+
+## 🚀 Recommandations
+
+**🎯 Usage Normal :** `Package All Platforms` (une fois, 5 plateformes)
+**🔧 Debug/Test :** Workflows individuels (rapide, ciblé)
+**📦 Distribution :** ZIP portables (pas d'installateurs)
+**🔄 Versioning :** Toujours `npm run sync-version` avant build
