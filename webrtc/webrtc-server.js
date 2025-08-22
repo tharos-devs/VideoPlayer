@@ -41,14 +41,11 @@ class WebRTCVideoStreamer {
     }
     
     setupServer() {
-        // Add CORS headers for cross-origin requests (including QML support)
+        // Add basic CORS headers
         this.app.use((req, res, next) => {
             res.header('Access-Control-Allow-Origin', '*');
             res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-            res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-            res.header('Access-Control-Allow-Credentials', 'true');
-            res.header('Access-Control-Max-Age', '3600');
-            res.header('Cache-Control', 'no-cache');
+            res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
             
             if (req.method === 'OPTIONS') {
                 res.sendStatus(200);
