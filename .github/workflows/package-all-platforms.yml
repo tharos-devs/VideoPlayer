@@ -125,7 +125,7 @@ jobs:
           
           # List contents for verification
           Write-Host "📦 Package contents:"
-          Get-ChildItem "musescore-package" -Recurse | Select-Object Name, FullName
+          Get-ChildItem musescore-package -Recurse | Select-Object Name, FullName
         shell: powershell
 
       - name: Create MuseScore package structure (macOS)
