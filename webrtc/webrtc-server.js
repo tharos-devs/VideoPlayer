@@ -34,10 +34,8 @@ class WebRTCVideoStreamer {
         this.setupServer();
         this.setupWebSocket();
         
-        // Server ready message
-        setTimeout(() => {
-            console.log('✅ WebRTC Server is ready to accept commands');
-        }, 2000);
+        // Server ready message - immediate
+        console.log('✅ WebRTC Server is ready to accept commands');
     }
     
     setupServer() {
@@ -257,10 +255,8 @@ class WebRTCVideoStreamer {
             });
         });
         
-        // Générer et afficher la première frame
-        setTimeout(() => {
-            this.generateStaticFrame();
-        }, 100); // Petit délai pour s'assurer que tout est initialisé
+        // Générer et afficher la première frame immédiatement
+        this.generateStaticFrame();
     }
     
     play() {
@@ -355,6 +351,8 @@ class WebRTCVideoStreamer {
             '-q:v', '8',
             '-s', '640x360',
             '-an',
+            '-fflags', '+fastseek+genpts', // Fast seeking
+            '-avoid_negative_ts', 'make_zero', // Avoid timestamp issues
             'pipe:1'
         ];
         

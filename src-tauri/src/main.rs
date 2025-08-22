@@ -112,7 +112,7 @@ async fn get_video_path(_state: tauri::State<'_, AppState>) -> Result<Option<Str
 }
 
 async fn monitor_endpoints() {
-    let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(100));
+    let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(50));
     
     loop {
         interval.tick().await;
@@ -194,7 +194,46 @@ async fn main() {
     
     println!("Looking for WebRTC server in: {:?}", webrtc_dir);
     
-    let node_server = match ProcessCommand::new("node")
+    // Try multiple node paths to find available node executable
+    let home_dir = std::env::var("HOME").unwrap_or_default();
+    let nvm_pattern = format!("{}/.nvm/versions/node/*/bin/node", home_dir);
+    let node_paths = vec![
+        "node".to_string(),  // System PATH
+        "/usr/local/bin/node".to_string(),  // Homebrew
+        "/opt/homebrew/bin/node".to_string(),  // Apple Silicon Homebrew
+        nvm_pattern,  // NVM
+    ];
+    
+    let mut node_cmd = None;
+    for path in &node_paths {
+        if path.contains("*") {
+            // Handle NVM glob pattern
+            if let Ok(home) = std::env::var("HOME") {
+                let nvm_path = format!("{}/.nvm/versions/node", home);
+                if let Ok(entries) = std::fs::read_dir(&nvm_path) {
+                    for entry in entries.flatten() {
+                        let node_exe = entry.path().join("bin/node");
+                        if node_exe.exists() {
+                            node_cmd = Some(node_exe.to_string_lossy().to_string());
+                            break;
+                        }
+                    }
+                }
+            }
+        } else {
+            let test_cmd = ProcessCommand::new(path).arg("--version").output();
+            if test_cmd.is_ok() {
+                node_cmd = Some(path.to_string());
+                break;
+            }
+        }
+        if node_cmd.is_some() { break; }
+    }
+    
+    let node_executable = node_cmd.unwrap_or_else(|| "node".to_string());
+    println!("Using node executable: {}", node_executable);
+    
+    let node_server = match ProcessCommand::new(&node_executable)
         .arg("webrtc-server.js")
         .current_dir(webrtc_dir)
         .spawn() {
@@ -209,11 +248,8 @@ async fn main() {
         }
     };
 
-    // Wait a moment for server to start
-    std::thread::sleep(std::time::Duration::from_millis(1000));
-    
-    // Attendre un peu plus pour que QML soit prêt à écouter
-    std::thread::sleep(std::time::Duration::from_millis(2000));
+    // Minimal wait for server to start
+    std::thread::sleep(std::time::Duration::from_millis(100));
     
     // Signal au plugin QML que le serveur WebRTC est prêt
     println!("WEBRTC_SERVER_READY");
@@ -251,10 +287,15 @@ async fn main() {
             let cleanup_flag = cleanup_started.clone();
             move |event| {
                 if let tauri::WindowEvent::CloseRequested { .. } = event.event() {
+                    println!("Close requested - keeping window open for MuseScore plugin communication");
+                    // Ne pas fermer automatiquement - garder ouvert pour les commandes MuseScore
+                    return;
+                }
+                if let tauri::WindowEvent::Destroyed = event.event() {
                     // Vérifier si le nettoyage a déjà commencé
                     let mut started = cleanup_flag.lock().unwrap();
                     if *started {
-                        println!("Cleanup already in progress, ignoring duplicate close event");
+                        println!("Cleanup already in progress, ignoring duplicate destroy event");
                         return;
                     }
                     *started = true;

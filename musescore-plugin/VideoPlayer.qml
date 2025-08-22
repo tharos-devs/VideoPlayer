@@ -23,14 +23,13 @@ MuseScore {
     id: palette
   }
 
-  // Vue Principale
   Window {
     id: dialogWindow
     title: "Video Player"
     width: 400
     height: 160
-    modality: Qt.Window | Qt.WindowStaysOnTopHint
-    flags: Qt.Dialog
+    modality: Qt.Window 
+    flags: Qt.Dialog | Qt.WindowStaysOnTopHint
 
     // Main view
     Rectangle {
@@ -161,6 +160,24 @@ MuseScore {
 
   }
 
+  QProcess {
+    id: qproc
+    onReadyReadStandardOutput: {
+      var output = readAllStandardOutput().toString()
+      console.log("INSTANCE", pluginInstanceId, "VideoPlayer output:", output)
+      
+      if (output.indexOf("WEBRTC_SERVER_READY") !== -1) {
+        console.log("INSTANCE", pluginInstanceId, "WebRTC server is ready!")
+        videoSource = curScore.metaTag("videoSource")
+        if (videoSource && videoSource !== "") {
+          dialogWindow.show()
+        } else {
+          fileDialog.visible = true
+        }
+      }
+    }
+  }
+
   PlaybackToolBarModel {
     id: directPlaybackModel
     Component.onCompleted: {
@@ -204,35 +221,10 @@ MuseScore {
     }
   }
 
-  // Timer de vérification de l'état du player
-  Timer {
-    id: playerReadyTimer
-    interval: 200
-    running: false
-    repeat: true
-    
-    onTriggered: {
-      checkPlayerReady(function(ready) {
-        if (ready) {
-          console.log("INSTANCE", pluginInstanceId, "Player ready - stopping timer and opening interface")
-          playerReadyTimer.stop()
-          
-          // Ouvrir l'interface appropriée
-          videoSource = curScore.metaTag("videoSource")
-          if (videoSource && videoSource !== "") {
-            dialogWindow.show()
-          } else {
-            fileDialog.visible = true
-          }
-        }
-      })
-    }
-  }
-
   // Timer d'écoute des commandes playback
   Timer {
     id: player
-    interval: 100
+    interval: 20
     running: false
     repeat: true
 
@@ -287,52 +279,13 @@ MuseScore {
     }
   }
 
-  function checkPlayerReady(callback) {
-    var xhr = new XMLHttpRequest()
-    xhr.open("GET", "http://localhost:5173/ready", true)
-    xhr.setRequestHeader("User-Agent", "MuseScore-VideoPlayer-Plugin/1.0")
-    xhr.setRequestHeader("Cache-Control", "no-cache")
-    xhr.onreadystatechange = function() {
-      if (xhr.readyState === XMLHttpRequest.DONE) {
-        console.log("INSTANCE", pluginInstanceId, "XHR completed - readyState:", xhr.readyState, "status:", xhr.status, "responseText:", xhr.responseText)
-        if (xhr.status === 200 && xhr.responseText === "OK") {
-          console.log("INSTANCE", pluginInstanceId, "Player is ready (status 200, response OK)")
-          callback(true)
-        } else {
-          console.log("INSTANCE", pluginInstanceId, "Player not ready, status:", xhr.status, "response:", xhr.responseText)
-          callback(false)
-        }
-      }
-    }
-    xhr.send()
-  }
-
-  function sendCommand(command, params) {
-    if (!params) params = ''
-    
-    if (command === 'set-video') {
-      // Vérifier que le player est prêt avant d'envoyer set-video
-      checkPlayerReady(function(ready) {
-        if (ready) {
-          var url = "http://localhost:5173/set-video?path=" + encodeURIComponent(params)
-          var xhr = new XMLHttpRequest()
-          xhr.open("GET", url, true)
-          xhr.send()
-          console.log("INSTANCE", pluginInstanceId, "set-video", params, url)
-        } else {
-          // Retry after 500ms
-          Qt.callLater(function() {
-            sendCommand('set-video', params)
-          })
-        }
-      })
-      return
-    }
-    
+  function sendCommand(command, params = "") {
     var url = "http://localhost:5173"
     switch (command) {
+      case 'set-video':
+        url = url + "/" + command + "?path=" + encodeURIComponent(params)
+        break
       case 'pause':
-      case 'open-player':
         url = url + "/" + command
         break
       default:
@@ -394,10 +347,8 @@ MuseScore {
     curScore.setMetaTag("videoPlayerId", pluginInstanceId)
     curScore.endCmd()
 
-    // Envoyer commande /open-player pour ouvrir le lecteur
-    sendCommand('open-player')
-    
-    // Démarrer le Timer de vérification
-    playerReadyTimer.start()
+    // Lancer le VideoPlayer avec QProcess mais tuer le process après le lancement
+    const videoPlayer = getVideoPlayer()
+    qproc.startWithArgs(videoPlayer, [])
   }
 }
