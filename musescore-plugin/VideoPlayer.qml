@@ -88,7 +88,7 @@ MuseScore {
       xhr.onreadystatechange = function() {
         if (xhr.readyState === 4) {
           // Peu importe le status, si readyState === 4, le serveur a répondu
-          if (xhr.status === 200 || xhr.status !== 0) {
+          if (xhr.status !== 0) {
             // Serveur disponible
             videoSource = curScore.metaTag("videoSource");
             if (videoSource && videoSource !== "") {
