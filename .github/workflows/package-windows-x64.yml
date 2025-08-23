@@ -73,7 +73,7 @@ jobs:
           Set-Location "..\.."
           
           # List contents for verification
-          Write-Host "📦 VideoPlayer directory contents:"
+          Write-Host "[Package] VideoPlayer directory contents:"
           Get-ChildItem VideoPlayer -Recurse | Select-Object Name, FullName
         shell: powershell
 
