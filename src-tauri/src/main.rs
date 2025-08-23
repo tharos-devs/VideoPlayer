@@ -1,9 +1,8 @@
 use std::sync::{Arc, Mutex};
 use std::process::{Child, Command as ProcessCommand};
 use std::fs;
-use serde::{Deserialize, Serialize};
 use tokio_tungstenite::{connect_async, tungstenite::Message};
-use futures_util::{SinkExt, StreamExt};
+use futures_util::StreamExt;
 
 
 
@@ -295,7 +294,7 @@ async fn main() {
                     
                     // Fast Node.js server termination
                     if let Ok(mut app_data) = app_state_clone.lock() {
-                        if let Some(child) = app_data.node_server.take() {
+                        if let Some(mut child) = app_data.node_server.take() {
                             println!("Stopping WebRTC server (PID: {})", child.id());
                             
                             // FAST KILL: Direct SIGKILL without waiting
