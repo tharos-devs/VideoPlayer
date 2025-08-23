@@ -89,7 +89,7 @@ jobs:
           
           # Show ZIP info
           $zipInfo = Get-Item "VideoPlayer-MuseScore-Windows-x64.zip"
-          Write-Host "📊 ZIP size: $($zipInfo.Length / 1MB) MB"
+          Write-Host "[Info] ZIP size: $($zipInfo.Length / 1MB) MB"
         shell: powershell
 
       - name: Upload MuseScore package
