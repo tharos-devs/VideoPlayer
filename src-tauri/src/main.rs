@@ -176,8 +176,8 @@ async fn main() {
     // Detect if we're in development or bundled mode
     let current_exe = std::env::current_exe().unwrap();
     let webrtc_dir = if current_exe.to_string_lossy().contains(".app/Contents/MacOS") {
-        // We're in a bundle, look for webrtc next to the .app bundle
-        current_exe.parent().unwrap().parent().unwrap().parent().unwrap().parent().unwrap().join("webrtc")
+        // We're in a bundle, look for webrtc in Contents/Resources
+        current_exe.parent().unwrap().parent().unwrap().join("Resources").join("webrtc")
     } else {
         // We're in development mode
         std::env::current_dir().unwrap().parent().unwrap().join("webrtc")

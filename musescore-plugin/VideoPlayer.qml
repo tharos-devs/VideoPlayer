@@ -226,7 +226,7 @@ MuseScore {
   // Timer d'écoute des commandes playback
   Timer {
     id: player
-    interval: 100
+    interval: 50
     running: false
     repeat: true
 
